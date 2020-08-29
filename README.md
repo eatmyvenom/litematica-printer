@@ -1,8 +1,8 @@
-# Fabric Example Mod
+# Litematica-Printer
 
 ## Setup
 
-For setup instructions please see the [fabric wiki page](https://fabricmc.net/wiki/tutorial:setup) that relates to the IDE that you are using.
+To set this up just add the latest litematica version to your mods folder as well as this, it will replace easy place with printer
 
 ## License
 

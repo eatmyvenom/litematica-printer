@@ -9,7 +9,7 @@ import net.fabricmc.api.ModInitializer;
 
 public class LitematicaMixinMod implements ModInitializer {
 
-	public static final ConfigInteger EASY_PLACE_MODE_RANGE_X      = new ConfigInteger("easyPlaceModeRangeX", 3, 0, 110242, "X Range for EasyPlace");
+	public static final ConfigInteger EASY_PLACE_MODE_RANGE_X      = new ConfigInteger("easyPlaceModeRangeX", 3, 0, 1024, "X Range for EasyPlace");
 	public static final ConfigInteger EASY_PLACE_MODE_RANGE_Y      = new ConfigInteger("easyPlaceModeRangeY", 3, 0, 1024, "Y Range for EasyPlace");
 	public static final ConfigInteger EASY_PLACE_MODE_RANGE_Z      = new ConfigInteger("easyPlaceModeRangeZ", 3, 0, 1024, "Z Range for EasyPlace");
 	public static final ConfigInteger EASY_PLACE_MODE_MAX_BLOCKS   = new ConfigInteger("easyPlaceModeMaxBlocks", 3, 1, 1000000, "Max block interactions per cycle");
@@ -50,10 +50,6 @@ public class LitematicaMixinMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
-
-		System.out.println("Bruh moment");
+		System.out.println("YeeFuckinHaw");
 	}
 }

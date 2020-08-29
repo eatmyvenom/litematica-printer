@@ -3,7 +3,7 @@
   "id": "modid",
   "version": "${version}",
 
-  "name": "Example Mod",
+  "name": "Litematica BRRRRRRRifier",
   "description": "This is an example description! Tell everyone what your mod is about!",
   "authors": [
     "Me!"
@@ -19,19 +19,15 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleMod"
+      "io.github.eatmyvenom.litematicin.LitematicaMixinMod"
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "litematica-printer.mixins.json"
   ],
 
   "depends": {
     "fabricloader": ">=0.7.4",
-    "fabric": "*",
     "minecraft": "1.16.x"
-  },
-  "suggests": {
-    "flamingo": "*"
   }
 }

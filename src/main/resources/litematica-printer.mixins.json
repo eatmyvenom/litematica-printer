@@ -1,12 +1,14 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "net.fabricmc.example.mixin",
+  "package": "io.github.eatmyvenom.litematicin.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
   ],
   "client": [
-    "ExampleMixin"
+    "Litematica.ConfigsMixin",
+    "Litematica.GuiConfigsMixin",
+    "Litematica.WorldUtilsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

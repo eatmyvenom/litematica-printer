@@ -220,6 +220,10 @@ public class Printer {
 
     }
 
+    public static ActionResult doAccuratePlacePrinter(MinecraftClient mc) {
+
+    }
+
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
         RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, 6, true);
@@ -337,7 +341,7 @@ public class Printer {
                     double dy = mc.player.getY() - y - 0.5;
                     double dz = mc.player.getZ() - z - 0.5;
 
-                    if (dx * dx + dy * dy + dz * dz > 64.0) // Check if within reach distance
+                    if (dx * dx + dy * dy + dz * dz > 1024.0) // Check if within reach distance
                         continue;
 
                     BlockPos pos = new BlockPos(x, y, z);
@@ -356,8 +360,8 @@ public class Printer {
                         }
                     }
                     if (stateSchematic.isAir())
-                        continue;
-
+                    continue;
+                    
                     // Abort if there is already a block in the target position
                     if (printerCheckCancel(stateSchematic, stateClient, mc.player)) {
 

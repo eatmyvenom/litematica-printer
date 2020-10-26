@@ -221,7 +221,7 @@ public class Printer {
     }
 
     public static ActionResult doAccuratePlacePrinter(MinecraftClient mc) {
-
+	return null;
     }
 
     @Environment(EnvType.CLIENT)

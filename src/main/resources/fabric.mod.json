@@ -3,8 +3,8 @@
   "id": "modid",
   "version": "${version}",
 
-  "name": "Litematica BRRRRRRRifier",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "Litematica Printer",
+  "description": "Replaces EasyPlace with the printer function.",
   "authors": [
     "Me!"
   ],

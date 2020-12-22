@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
-  "version": "${version}",
+  "id": "litematica_printer",
+  "version": "1.0.0",
 
   "name": "Litematica Printer",
-  "description": "Replaces EasyPlace with the printer function.",
+  "description": "Replaces EasyPlace with a printer to make building even easier.",
   "authors": [
-    "Me!"
+    "eatmyvenom"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://github.com/eatmyvenom/litematica-printer",
+    "sources": "https://github.com/eatmyvenom/litematica-printer"
   },
 
   "license": "CC0-1.0",
@@ -29,5 +29,9 @@
   "depends": {
     "fabricloader": ">=0.7.4",
     "minecraft": "1.16.x"
+  },
+  "custom": {
+    "modmenu:parent": "carpet"
   }
 }
+

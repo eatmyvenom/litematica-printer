@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "litematica_printer",
-  "version": "1.0.0",
+  "version": "${version}",
 
   "name": "Litematica Printer",
   "description": "Replaces EasyPlace with a printer to make building even easier.",

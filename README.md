@@ -1,15 +1,7 @@
-# Litematica-Printer
+# Litematica-Printer - Unofficial Fork
 
-## Setup
-
-To set this up just add the latest litematica version to your mods folder as well as this, it will replace easy place with printer. This does not use accurate placement protocal and therefore means that in order to place blocks in some rotations, you need to rotate your player. If I stop lazy, I will add one that does use accurate placement.
-
-## Support
-If you have any issues with this mod **DO NOT** contact and bother masa with it. Please message me in discord, I am usually around Scicraft, Mechanists, and Hekate. 
-
-## Credits
-Masa is the writer of the actual litematica mod and allowed all of this to be possible.
-Andrews is the one who made the litematica printer implimentation, I just converted it to mixin.
+### IF YOU WANT THE MOD, GO HERE: https://github.com/eatmyvenom/litematica-printer
+THIS IS A FORK OF LITEMATICA PRINTER FOR MY TESTING PURPOSES. DO NOT USE THIS FORK. I HAVE ABSOLUTELY NO IDEA WHAT I AM DOING SO DON'T LOOK TO ME.
 
 ## License
 

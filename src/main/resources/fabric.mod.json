@@ -31,7 +31,9 @@
     "minecraft": "1.16.x"
   },
   "custom": {
-    "modmenu:parent": "litematica"
+    "modmenu": {
+      "parent": "carpet"
+    }
   }
 }
 

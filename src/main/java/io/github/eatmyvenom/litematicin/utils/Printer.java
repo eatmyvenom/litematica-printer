@@ -1,5 +1,11 @@
 package io.github.eatmyvenom.litematicin.utils;
 
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_BREAK_BLOCKS;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_MAX_BLOCKS;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -7,7 +13,6 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 
-import fi.dy.masa.litematica.config.Configs;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.materials.MaterialCache;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager.PlacementPart;
@@ -25,7 +30,6 @@ import net.fabricmc.api.Environment;
 import net.minecraft.block.AbstractButtonBlock;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.BeehiveBlock;
-import net.minecraft.block.BellBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.CarvedPumpkinBlock;
@@ -39,7 +43,6 @@ import net.minecraft.block.EndRodBlock;
 import net.minecraft.block.EnderChestBlock;
 import net.minecraft.block.FenceGateBlock;
 import net.minecraft.block.FurnaceBlock;
-import net.minecraft.block.GrindstoneBlock;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.LadderBlock;
 import net.minecraft.block.LecternBlock;
@@ -81,8 +84,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-
-import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.*;
 
 public class Printer {
 
@@ -178,9 +179,9 @@ public class Printer {
         ItemStack stack = MaterialCache.getInstance().getRequiredBuildItemForState(preference, world, pos);
 
         if (stack.isEmpty() == false) {
-            PlayerInventory inv = mc.player.inventory;
+            PlayerInventory inv = mc.player.getInventory();
 
-            if (mc.player.abilities.creativeMode) {
+            if (mc.player.getAbilities().creativeMode) {
                 // BlockEntity te = world.getBlockEntity(pos);
 
                 // The creative mode pick block with NBT only works correctly
@@ -215,10 +216,6 @@ public class Printer {
         return true;
     }
 
-
-    private static void attackBlock() {
-
-    }
 
     public static ActionResult doAccuratePlacePrinter(MinecraftClient mc) {
 	return null;
@@ -473,7 +470,7 @@ public class Printer {
                     }
 
                     ItemStack stack = ((MaterialCache) MaterialCache.getInstance()).getRequiredBuildItemForState((BlockState)stateSchematic);
-                    if (stack.isEmpty() == false && (mc.player.abilities.creativeMode || mc.player.inventory.getSlotWithStack(stack) != -1)) {
+                    if (stack.isEmpty() == false && (mc.player.getAbilities().creativeMode || mc.player.getInventory().getSlotWithStack(stack) != -1)) {
 
                         if (stateSchematic == stateClient) {
                             continue;
@@ -499,7 +496,7 @@ public class Printer {
                         // Exception for signs (edge case)
                         if (stateSchematic.getBlock() instanceof SignBlock
                                 && !(stateSchematic.getBlock() instanceof WallSignBlock)) {
-                            if ((MathHelper.floor((double) ((180.0F + mc.player.yaw) * 16.0F / 360.0F) + 0.5D)
+                            if ((MathHelper.floor((double) ((180.0F + mc.player.getYaw()) * 16.0F / 360.0F) + 0.5D)
                                     & 15) != stateSchematic.get(SignBlock.ROTATION))
                                 continue;
 

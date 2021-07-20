@@ -226,9 +226,11 @@ public class Printer {
     
     // For printing delay
     public static long lastPlaced = new Date().getTime();
+    public static Breaker breaker = new Breaker();
 
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
+    	if (breaker.isBreakingBlock()) return ActionResult.SUCCESS;
     	if (new Date().getTime() < lastPlaced + 1000.0 * EASY_PLACE_MODE_DELAY.getDoubleValue()) return ActionResult.PASS;
 
     	
@@ -357,13 +359,19 @@ public class Printer {
 
                     if (breakBlocks && stateSchematic != null && !stateClient.isAir()) {
                         if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= 36.0) {
-                            mc.interactionManager.attackBlock(pos, Direction.DOWN);
-                            interact++;
+                            
+                        	if (mc.player.getAbilities().creativeMode) {
+                        		mc.interactionManager.attackBlock(pos, Direction.DOWN);
+                                interact++;
 
-                            if (interact >= maxInteract) {
-                            	lastPlaced = new Date().getTime();
-                                return ActionResult.SUCCESS;
-                            }
+                                if (interact >= maxInteract) {
+                                	lastPlaced = new Date().getTime();
+                                    return ActionResult.SUCCESS;
+                                }
+                        	} else { // For survival
+                            	breaker.startBreakingBlock(pos);
+                            	return ActionResult.SUCCESS;
+                        	}
                         }
                     }
                     if (stateSchematic.isAir())

@@ -8,9 +8,11 @@ To set this up just add the latest litematica version to your mods folder as wel
 
 ### Printer settings:
 
-`easyPlaceModeRange (x,y,z)`:&emsp;	"X,Y,Z Range for EasyPlace"
-`easyPlaceModeMaxBlocks`:&emsp;		"Max block interactions per cycle"
-`easyPlaceModeBreakBlocks`:&emsp;	"Automatically breaks blocks. Currently only works in creative."
+`easyPlaceModeRange (x,y,z)`:&emsp;	"X,Y,Z Range for EasyPlace"<br/>
+`easyPlaceModeMaxBlocks`:&emsp;		"Max block interactions per cycle"<br/>
+`easyPlaceModeBreakBlocks`:&emsp;	"Automatically breaks blocks."<br/>
+`easyPlaceModeDelay`:&emsp;			"Delay between printing blocks.Do not set to 0 if you are playing on a server."
+`easyPlaceModeHotbarOnly`:&emsp;	"Only place blocks from your hotbar. This bypasses some anti-cheats."
 
 ### Handy litematica settings:
 

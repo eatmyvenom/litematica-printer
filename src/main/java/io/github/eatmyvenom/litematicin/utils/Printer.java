@@ -1,12 +1,15 @@
 package io.github.eatmyvenom.litematicin.utils;
 
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_BREAK_BLOCKS;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_DELAY;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_HOTBAR_ONLY;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_MAX_BLOCKS;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,7 +206,7 @@ public class Printer {
                
                 int slot = inv.getSlotWithStack(stack);
                 boolean shouldPick = inv.selectedSlot != slot;
-                boolean canPick = slot != -1;
+                boolean canPick = (slot != -1) || (slot < 9 && EASY_PLACE_MODE_HOTBAR_ONLY.getBooleanValue());
 
                 if (shouldPick && canPick) {
                     InventoryUtils.setPickedItemToHand(stack, mc);
@@ -220,9 +223,15 @@ public class Printer {
     public static ActionResult doAccuratePlacePrinter(MinecraftClient mc) {
 	return null;
     }
+    
+    // For printing delay
+    public static long lastPlaced = new Date().getTime();
 
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
+    	if (new Date().getTime() < lastPlaced + 1000.0 * EASY_PLACE_MODE_DELAY.getDoubleValue()) return ActionResult.PASS;
+
+    	
         RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, 6, true);
         if (traceWrapper == null) {
             return ActionResult.FAIL;
@@ -352,6 +361,7 @@ public class Printer {
                             interact++;
 
                             if (interact >= maxInteract) {
+                            	lastPlaced = new Date().getTime();
                                 return ActionResult.SUCCESS;
                             }
                         }
@@ -451,11 +461,13 @@ public class Printer {
                                         mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
                                         interact++;
 
-                                        if (interact >= maxInteract) {
+                                        // Click the place block a few times to be sure he is placed
+                                        /*if (interact >= maxInteract) {
+                                        	lastPlaced = new Date().getTime();
                                             return ActionResult.SUCCESS;
-                                        }
+                                        }*/
                                     }
-
+ 
                                     if (clickTimes > 0) {
                                         cacheEasyPlacePosition(pos, true);
                                     }
@@ -633,6 +645,7 @@ public class Printer {
                         }
 
                         if (interact >= maxInteract) {
+                        	lastPlaced = new Date().getTime();
                             return ActionResult.SUCCESS;
                         }
 
@@ -643,7 +656,11 @@ public class Printer {
 
         }
 
-        return (interact > 0) ? ActionResult.SUCCESS : ActionResult.FAIL;
+        if (interact > 0) {
+        	lastPlaced = new Date().getTime();
+        	return ActionResult.SUCCESS;
+        }
+        return ActionResult.FAIL;
     }
 
     /*

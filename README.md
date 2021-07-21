@@ -30,6 +30,8 @@ To set this up just add the latest litematica version to your mods folder as wel
 `easyPlaceActivation`:&emsp;		"When the easyPlaceMode is enabled, this key must be held to enable placing the blocks when using the vanilla Use key"<br/>
 `easyPlaceToggle`:&emsp;			"Allows quickly toggling on/off the Easy Place mode"<br/>
 
+`worldminheight`:&emsp;			"it will allow printer's acting y minimum range. for 1.17 datapacks"<br/>
+`worldmaxheight`:&emsp;			"it will allow printer's acting y maximum range. for 1.17 datapacks"<br/>
 ## Support
 If you have any issues with this mod **DO NOT** contact and bother masa with it. Please message me in discord, I am usually around Scicraft, Mechanists, and Hekate. 
 

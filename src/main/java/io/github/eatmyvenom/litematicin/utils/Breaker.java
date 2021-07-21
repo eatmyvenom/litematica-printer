@@ -4,7 +4,10 @@ import fi.dy.masa.litematica.config.Hotkeys;
 import fi.dy.masa.malilib.event.TickHandler;
 import fi.dy.masa.malilib.hotkeys.KeybindMulti;
 import fi.dy.masa.malilib.interfaces.IClientTickHandler;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -25,13 +28,46 @@ public class Breaker implements IClientTickHandler {
 		TickHandler.getInstance().registerClientTickHandler(this);
 	}
 	
-	public void startBreakingBlock(BlockPos pos) {
+	public void startBreakingBlock(BlockPos pos, MinecraftClient mc) {
 		this.breakingBlock = true;
 		this.pos = pos;
+		// Check for best tool in inventory
+		int bestSlotId = getBestItemSlotToMineBlock(mc, pos);
+		// If slot isn't selected, change
+		if (mc.player.getInventory().selectedSlot != bestSlotId) {
+			mc.player.getInventory().selectedSlot = bestSlotId;
+		}
 	}
 	
 	public boolean isBreakingBlock() {
 		return this.breakingBlock;
+	}
+	
+	private int getBestItemSlotToMineBlock(MinecraftClient mc, BlockPos blockToMine) {
+		int bestSlot = 0;
+		float bestSpeed = 0;
+		BlockState state = mc.world.getBlockState(blockToMine);
+		for (int i = 8; i >= 0; i--) {
+			float speed = getBlockBreakingSpeed(state, mc, i);
+			if ((speed > bestSpeed && speed > 1.0F)
+					|| (speed >= bestSpeed && !mc.player.getInventory().getStack(i).isDamageable())) {
+				bestSlot = i;
+				bestSpeed = speed;
+			}
+		}
+		return bestSlot;
+	}
+	
+	private float getBlockBreakingSpeed(BlockState block, MinecraftClient mc, int slotId) {
+		float f = ((ItemStack)mc.player.getInventory().main.get(slotId)).getMiningSpeedMultiplier(block);
+	    if (f > 1.0F) {
+	       int i = EnchantmentHelper.getEfficiency(mc.player);
+	       ItemStack itemStack = mc.player.getInventory().getMainHandStack();
+	       if (i > 0 && !itemStack.isEmpty()) {
+	          f += (float)(i * i + 1);
+	       }
+	    }
+	    return f;
 	}
 
 	@Override

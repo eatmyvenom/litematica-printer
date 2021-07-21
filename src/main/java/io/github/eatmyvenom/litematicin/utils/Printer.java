@@ -369,7 +369,7 @@ public class Printer {
                                     return ActionResult.SUCCESS;
                                 }
                         	} else { // For survival
-                            	breaker.startBreakingBlock(pos);
+                            	breaker.startBreakingBlock(pos, mc);
                             	return ActionResult.SUCCESS;
                         	}
                         }

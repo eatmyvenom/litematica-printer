@@ -301,7 +301,7 @@ public class Printer {
         int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
-	int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ)
+	int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
 	int worldMinY = WORLD_MIN_HEIGHT.getIntegerValue();
 	int worldMaxY = WORLD_MAX_HEIGHT.getIntegerValue();
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();

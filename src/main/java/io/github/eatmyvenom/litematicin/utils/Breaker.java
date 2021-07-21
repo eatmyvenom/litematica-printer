@@ -73,9 +73,9 @@ public class Breaker implements IClientTickHandler {
 	@Override
 	public void onClientTick(MinecraftClient mc) {
 		if (!isBreakingBlock()) return;
+		if (mc.player == null) return;
 		if (!Hotkeys.EASY_PLACE_ACTIVATION.getKeybind().isKeybindHeld() ||
-	            !KeybindMulti.isKeyDown(KeybindMulti.getKeyCode(mc.options.keyUse))
-	            || mc.player == null) { // When the use button is released, stop the breaking;
+	            !KeybindMulti.isKeyDown(KeybindMulti.getKeyCode(mc.options.keyUse))) { // When the use button is released, stop the breaking;
 			mc.interactionManager.cancelBlockBreaking();
 			return;
 		}

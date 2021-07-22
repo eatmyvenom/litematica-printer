@@ -7,8 +7,6 @@ import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MOD
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
-import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_Y_MIN;
-import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_Y_MAX;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -229,6 +227,9 @@ public class Printer {
     // For printing delay
     public static long lastPlaced = new Date().getTime();
     public static Breaker breaker = new Breaker();
+    
+    public static int worldBottomY = 0;
+    public static int worldTopY = 256;
 
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
@@ -302,8 +303,6 @@ public class Printer {
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
         int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
-        int LimitMinY = EASY_PLACE_Y_MIN.getIntegerValue();
-        int LimitMaxY = EASY_PLACE_Y_MAX.getIntegerValue();
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
         Direction[] facingSides = Direction.getEntityFacingOrder(mc.player);
         Direction primaryFacing = facingSides[0];
@@ -335,8 +334,8 @@ public class Printer {
         int toY = Math.min(posY + rangeY, maxY);
         int toZ = Math.min(posZ + rangeZ, maxZ);
 
-        toY = Math.max(Math.max(LimitMinY, Math.min(Math.min(toY, LimitMaxY),world.getTopY())),world.getBottomY());
-        fromY = Math.max(Math.max(LimitMinY, Math.min(Math.min(fromY, LimitMaxY),world.getTopY())),world.getBottomY()); 
+        toY = Math.max(Math.min(toY,worldTopY),worldBottomY);
+        fromY = Math.max(Math.min(fromY, worldTopY),worldBottomY); 
 
         fromX = Math.max(fromX,(int)mc.player.getX() - rangeX);
         fromY = Math.max(fromY,(int)mc.player.getY() - rangeY);

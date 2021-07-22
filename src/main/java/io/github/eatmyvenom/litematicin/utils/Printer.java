@@ -229,7 +229,6 @@ public class Printer {
     // For printing delay
     public static long lastPlaced = new Date().getTime();
     public static Breaker breaker = new Breaker();
-    World world = MinecraftClient.getInstance().world;
 
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {

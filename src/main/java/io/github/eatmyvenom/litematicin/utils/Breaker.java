@@ -32,18 +32,20 @@ public class Breaker implements IClientTickHandler {
 		this.breakingBlock = true;
 		this.pos = pos;
 		// Check for best tool in inventory
-		int bestSlotId = getBestItemSlotToMineBlock(mc, pos);
+		int bestSlotId = getBestItemSlotIdToMineBlock(mc, pos);
 		// If slot isn't selected, change
 		if (mc.player.getInventory().selectedSlot != bestSlotId) {
 			mc.player.getInventory().selectedSlot = bestSlotId;
 		}
+		// Start breaking
+		TickHandler.getInstance().registerClientTickHandler(this);
 	}
 	
 	public boolean isBreakingBlock() {
 		return this.breakingBlock;
 	}
 	
-	private int getBestItemSlotToMineBlock(MinecraftClient mc, BlockPos blockToMine) {
+	private int getBestItemSlotIdToMineBlock(MinecraftClient mc, BlockPos blockToMine) {
 		int bestSlot = 0;
 		float bestSpeed = 0;
 		BlockState state = mc.world.getBlockState(blockToMine);
@@ -74,23 +76,22 @@ public class Breaker implements IClientTickHandler {
 	public void onClientTick(MinecraftClient mc) {
 		if (!isBreakingBlock()) return;
 		if (mc.player == null) return;
-		if (!Hotkeys.EASY_PLACE_ACTIVATION.getKeybind().isKeybindHeld() ||
-	            !KeybindMulti.isKeyDown(KeybindMulti.getKeyCode(mc.options.keyUse))) { // When the use button is released, stop the breaking;
-			mc.interactionManager.cancelBlockBreaking();
-			return;
+		
+		if (Hotkeys.EASY_PLACE_ACTIVATION.getKeybind().isKeybindHeld() &&
+	            KeybindMulti.isKeyDown(KeybindMulti.getKeyCode(mc.options.keyUse))) { // Only continue mining while the correct keys are pressed
+			Direction side = Direction.values()[0];
+			
+			if (mc.interactionManager.updateBlockBreakingProgress(pos, side)) {
+				mc.particleManager.addBlockBreakingParticles(pos, side);
+				mc.player.swingHand(Hand.MAIN_HAND);
+			}
 		}
 		
-		Direction side = Direction.values()[0];
+		if (!mc.world.getBlockState(pos).isAir()) return; // If block isn't broken yet, dont stop
 		
-		if (mc.interactionManager.updateBlockBreakingProgress(pos, side)) {
-			mc.particleManager.addBlockBreakingParticles(pos, side);
-			mc.player.swingHand(Hand.MAIN_HAND);
-		}
-		
-		if (mc.world.getBlockState(pos).isAir()) {
-			this.breakingBlock = false;
-			mc.interactionManager.cancelBlockBreaking();
-		}
+		// Stop breaking
+		this.breakingBlock = false;
+		mc.interactionManager.cancelBlockBreaking();
 	}
 	
 }

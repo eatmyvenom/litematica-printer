@@ -7,6 +7,8 @@ import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MOD
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_Y_MIN;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_Y_MAX;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -299,6 +301,9 @@ public class Printer {
         int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
+        int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
+        int LimitMinY = EASY_PLACE_Y_MIN.getIntegerValue();
+        int LimitMaxY = EASY_PLACE_Y_MAX.getIntegerValue();
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
         Direction[] facingSides = Direction.getEntityFacingOrder(mc.player);
         Direction primaryFacing = facingSides[0];
@@ -330,16 +335,16 @@ public class Printer {
         int toY = Math.min(posY + rangeY, maxY);
         int toZ = Math.min(posZ + rangeZ, maxZ);
 
-        toY = Math.max(0, Math.min(toY, 255));
-        fromY = Math.max(0, Math.min(fromY, 255));
+        toY = Math.max(Math.max(LimitMinY, Math.min(Math.min(toY, LimitMaxY),world.getTopY())),world.getBottomY());
+        fromY = Math.max(Math.max(LimitMinY, Math.min(Math.min(fromY, LimitMaxY),world.getTopY())),world.getBottomY()); 
 
-        fromX = Math.max(fromX,(int)mc.player.getX() - 8);
-        fromY = Math.max(fromY,(int)mc.player.getY() - 8);
-        fromZ = Math.max(fromZ,(int)mc.player.getZ() - 8);
+        fromX = Math.max(fromX,(int)mc.player.getX() - rangeX);
+        fromY = Math.max(fromY,(int)mc.player.getY() - rangeY);
+        fromZ = Math.max(fromZ,(int)mc.player.getZ() - rangeZ);
 
-        toX = Math.min(toX,(int)mc.player.getX() + 8);
-        toY = Math.min(toY,(int)mc.player.getY() + 8);
-        toZ = Math.min(toZ,(int)mc.player.getZ() + 8);
+        toX = Math.min(toX,(int)mc.player.getX() + rangeX);
+        toY = Math.min(toY,(int)mc.player.getY() + rangeY);
+        toZ = Math.min(toZ,(int)mc.player.getZ() + rangeZ);
         
         for (int x = fromX; x <= toX; x++) {
             for (int y = fromY; y <= toY; y++) {
@@ -349,7 +354,7 @@ public class Printer {
                     double dy = mc.player.getY() - y - 0.5;
                     double dz = mc.player.getZ() - z - 0.5;
 
-                    if (dx * dx + dy * dy + dz * dz > 1024.0) // Check if within reach distance
+                    if (dx * dx + dy * dy + dz * dz > MaxReach * MaxReach) // Check if within reach distance
                         continue;
 
                     BlockPos pos = new BlockPos(x, y, z);

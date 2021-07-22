@@ -229,6 +229,7 @@ public class Printer {
     // For printing delay
     public static long lastPlaced = new Date().getTime();
     public static Breaker breaker = new Breaker();
+    World world = MinecraftClient.getInstance().world;
 
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
@@ -301,9 +302,9 @@ public class Printer {
         int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
-	int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
-	int LimitMinY = EASY_PLACE_Y_MIN.getIntegerValue();
-	int LimitMaxY = EASY_PLACE_Y_MAX.getIntegerValue();
+        int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
+        int LimitMinY = EASY_PLACE_Y_MIN.getIntegerValue();
+        int LimitMaxY = EASY_PLACE_Y_MAX.getIntegerValue();
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
         Direction[] facingSides = Direction.getEntityFacingOrder(mc.player);
         Direction primaryFacing = facingSides[0];
@@ -335,8 +336,8 @@ public class Printer {
         int toY = Math.min(posY + rangeY, maxY);
         int toZ = Math.min(posZ + rangeZ, maxZ);
 
-        toY = Math.max(LimitMinY, Math.min(toY, LimitMaxY));
-        fromY = Math.max(LimitMinY, Math.min(fromY, LimitMaxY)); // need to remove hardcoded, maybe refer to world?
+        toY = Math.max(Math.max(LimitMinY, Math.min(Math.min(toY, LimitMaxY),world.getTopY())),world.getBottomY());
+        fromY = Math.max(Math.max(LimitMinY, Math.min(Math.min(fromY, LimitMaxY),world.getTopY())),world.getBottomY()); 
 
         fromX = Math.max(fromX,(int)mc.player.getX() - rangeX);
         fromY = Math.max(fromY,(int)mc.player.getY() - rangeY);

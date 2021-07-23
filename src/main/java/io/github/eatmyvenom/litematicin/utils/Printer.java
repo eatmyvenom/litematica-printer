@@ -27,6 +27,7 @@ import fi.dy.masa.litematica.util.RayTraceUtils;
 import fi.dy.masa.litematica.util.RayTraceUtils.RayTraceWrapper;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
 import fi.dy.masa.malilib.util.IntBoundingBox;
+import fi.dy.masa.malilib.util.LayerRange;
 import fi.dy.masa.malilib.util.SubChunkPos;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -58,6 +59,7 @@ import net.minecraft.block.PillarBlock;
 import net.minecraft.block.PistonBlock;
 import net.minecraft.block.PumpkinBlock;
 import net.minecraft.block.RepeaterBlock;
+import net.minecraft.block.SeaPickleBlock;
 import net.minecraft.block.SignBlock;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
@@ -298,7 +300,7 @@ public class Printer {
         if (!foundBox) {
             return ActionResult.PASS;
         }
-
+        LayerRange range = DataManager.getRenderLayerRange(); //add range following
         int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
@@ -357,7 +359,8 @@ public class Printer {
                         continue;
 
                     BlockPos pos = new BlockPos(x, y, z);
-
+                    if (range.isPositionWithinRange(pos) == false)
+                        continue;
                     BlockState stateSchematic = world.getBlockState(pos);
                     BlockState stateClient = mc.world.getBlockState(pos);
 
@@ -655,7 +658,17 @@ public class Printer {
                                 interact++;
                             }
                         }
-
+                        if (stateSchematic.getBlock() instanceof SeaPickleBlock
+                                && stateSchematic.get(SeaPickleBlock.PICKLES)>1) {
+                            stateClient = mc.world.getBlockState(npos);
+                            if (stateClient.getBlock() instanceof SeaPickleBlock
+                                    && stateClient.get(SeaPickleBlock.PICKLES) < stateSchematic.get(SeaPickleBlock.PICKLES)) {
+                                side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
+                                hitResult = new BlockHitResult(hitPos, side, npos, false);
+                                mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
+                                interact++;
+                            }
+                        }
                         if (interact >= maxInteract) {
                         	lastPlaced = new Date().getTime();
                             return ActionResult.SUCCESS;
@@ -712,7 +725,13 @@ public class Printer {
     private static boolean printerCheckCancel(BlockState stateSchematic, BlockState stateClient,
             PlayerEntity player) {
         Block blockSchematic = stateSchematic.getBlock();
+        if (blockSchematic instanceof SeaPickleBlock && stateSchematic.get(SeaPickleBlock.PICKLES) >1) {
+            Block blockClient = stateClient.getBlock();
 
+            if (blockClient instanceof SeaPickleBlock && stateClient.get(SeaPickleBlock.PICKLES) != stateSchematic.get(SeaPickleBlock.PICKLES)) {
+                return blockSchematic != blockClient;
+            }
+        }
         if (blockSchematic instanceof SlabBlock && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
             Block blockClient = stateClient.getBlock();
 

@@ -21,13 +21,24 @@ import net.minecraft.util.math.Direction;
  */
 public class Breaker implements IClientTickHandler {
 	
-	private boolean breakingBlock = false;
+	private boolean breakingBlock;
 	private BlockPos pos;
 	
+	/**
+	 * Initialize the breaker and register this as a ClientTickHandler.
+	 */
 	public Breaker() {
+		this.breakingBlock = false;
+		this.pos = null;
+		
 		TickHandler.getInstance().registerClientTickHandler(this);
 	}
 	
+	/**
+	 * Start breaking a block at location {@code pos}.
+	 * @param pos {@code BlockPos} of the block to break
+	 * @param mc {@code MinecraftClient} for accessing data
+	 */
 	public void startBreakingBlock(BlockPos pos, MinecraftClient mc) {
 		this.breakingBlock = true;
 		this.pos = pos;
@@ -41,10 +52,22 @@ public class Breaker implements IClientTickHandler {
 		TickHandler.getInstance().registerClientTickHandler(this);
 	}
 	
+	/**
+	 * Check if we're still breaking a block.
+	 * @return True if still breaking a block.
+	 */
 	public boolean isBreakingBlock() {
 		return this.breakingBlock;
 	}
 	
+	/**
+	 * Get the best item slot id for mining a block at {@code blockToMine}. 
+	 * This function will look for the fastest item you can mine that block with, 
+	 * if there is non, it will return an item that cannot break.
+	 * @param mc {@code MinecraftClient} for accessing data.
+	 * @param blockToMine {@code BlockPos} of block to compare blockBreakingSpeeds with.
+	 * @return slotId as an {@code Integer}
+	 */
 	private int getBestItemSlotIdToMineBlock(MinecraftClient mc, BlockPos blockToMine) {
 		int bestSlot = 0;
 		float bestSpeed = 0;
@@ -60,6 +83,13 @@ public class Breaker implements IClientTickHandler {
 		return bestSlot;
 	}
 	
+	/**
+	 * Get the blockBreakingSpeed of an item at inventorySlot with id {@code slotId} that mines the {@code block}.
+	 * @param block {@code BlockState} of block the item needs to mine.
+	 * @param mc {@code MinecraftClient} for accessing data.
+	 * @param slotId id where item is in inventory.
+	 * @return blockBreakingSpeed as a {@code Float}
+	 */
 	private float getBlockBreakingSpeed(BlockState block, MinecraftClient mc, int slotId) {
 		float f = ((ItemStack)mc.player.getInventory().main.get(slotId)).getMiningSpeedMultiplier(block);
 	    if (f > 1.0F) {
@@ -71,7 +101,9 @@ public class Breaker implements IClientTickHandler {
 	    }
 	    return f;
 	}
-
+	/**
+	 * Don't call this function, it's automatically called every tick by malilib.
+	 */
 	@Override
 	public void onClientTick(MinecraftClient mc) {
 		if (!isBreakingBlock()) return;

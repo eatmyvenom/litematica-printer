@@ -10,9 +10,7 @@ import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MOD
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -29,41 +27,27 @@ import fi.dy.masa.litematica.world.SchematicWorldHandler;
 import fi.dy.masa.malilib.util.IntBoundingBox;
 import fi.dy.masa.malilib.util.LayerRange;
 import fi.dy.masa.malilib.util.SubChunkPos;
+import io.github.eatmyvenom.litematicin.utils.FacingDataStorage.FacingData;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.AbstractButtonBlock;
 import net.minecraft.block.BedBlock;
-import net.minecraft.block.BeehiveBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.CarvedPumpkinBlock;
-import net.minecraft.block.ChestBlock;
 import net.minecraft.block.ComparatorBlock;
-import net.minecraft.block.DispenserBlock;
 import net.minecraft.block.DoorBlock;
-import net.minecraft.block.DropperBlock;
-import net.minecraft.block.EndPortalFrameBlock;
 import net.minecraft.block.EndRodBlock;
-import net.minecraft.block.EnderChestBlock;
 import net.minecraft.block.FenceGateBlock;
-import net.minecraft.block.FurnaceBlock;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.LadderBlock;
-import net.minecraft.block.LecternBlock;
 import net.minecraft.block.LeverBlock;
-import net.minecraft.block.LoomBlock;
 import net.minecraft.block.Material;
 import net.minecraft.block.NoteBlock;
-import net.minecraft.block.ObserverBlock;
 import net.minecraft.block.PillarBlock;
-import net.minecraft.block.PistonBlock;
-import net.minecraft.block.PumpkinBlock;
 import net.minecraft.block.RepeaterBlock;
 import net.minecraft.block.SeaPickleBlock;
 import net.minecraft.block.SignBlock;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
-import net.minecraft.block.StonecutterBlock;
 import net.minecraft.block.TorchBlock;
 import net.minecraft.block.TrapdoorBlock;
 import net.minecraft.block.TripwireHookBlock;
@@ -91,89 +75,18 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public class Printer {
-
-    private static class FacingData {
-        public int type;
-        public boolean isReversed;
-
-        FacingData(int type, boolean isrev) {
-            this.type = type;
-            this.isReversed = isrev;
-        }
-    }
-
-    private static final Map<Class<? extends Block>, FacingData> facingMap = new LinkedHashMap<Class<? extends Block>, FacingData>();
-
+	
     private static final List<PositionCache> positionCache = new ArrayList<>();
-    private static boolean setupFacing = false;
 
-    private static void addFD(final Class<? extends Block> c, FacingData data) {
-        facingMap.put(c, data);
-    }
-
-    private static void setUpFacingData() {
-        setupFacing = true;
-
-        /*
-         * 0 = Normal up/down/east/west/south/north directions 1 = Horizontal directions
-         * 2 = Wall Attactchable block
-         * 
-         * 
-         * TODO: THIS CODE MUST BE CLEANED UP.
-         */
-
-        // All directions, reverse of what player is facing
-        addFD(PistonBlock.class, new FacingData(0, true));
-        addFD(DispenserBlock.class, new FacingData(0, true));
-        addFD(DropperBlock.class, new FacingData(0, true));
-
-        // All directions, normal direction of player
-        addFD(ObserverBlock.class, new FacingData(0, false));
-
-        // Horizontal directions, normal direction
-        addFD(StairsBlock.class, new FacingData(1, false));
-        addFD(DoorBlock.class, new FacingData(1, false));
-        addFD(BedBlock.class, new FacingData(1, false));
-        addFD(FenceGateBlock.class, new FacingData(1, false));
-
-        // Horizontal directions, reverse of what player is facing
-        addFD(ChestBlock.class, new FacingData(1, true));
-        addFD(RepeaterBlock.class, new FacingData(1, true));
-        addFD(ComparatorBlock.class, new FacingData(1, true));
-        addFD(EnderChestBlock.class, new FacingData(1, true));
-        addFD(FurnaceBlock.class, new FacingData(1, true));
-        addFD(LecternBlock.class, new FacingData(1, true));
-        addFD(LoomBlock.class, new FacingData(1, true));
-        addFD(BeehiveBlock.class, new FacingData(1, true));
-        addFD(StonecutterBlock.class, new FacingData(1, true));
-        addFD(CarvedPumpkinBlock.class, new FacingData(1, true));
-        addFD(PumpkinBlock.class, new FacingData(1, true));
-        addFD(EndPortalFrameBlock.class, new FacingData(1, true));
-
-        // Top/bottom placable side mountable blocks
-        addFD(LeverBlock.class, new FacingData(2, false));
-        addFD(AbstractButtonBlock.class, new FacingData(2, false));
-     //addFD(BellBlock.class, new FacingData(2, false));
-        //addFD(GrindstoneBlock.class, new FacingData(2, false));
-
-    }
-
-    // TODO: This must be moved to another class and not be static.
-    private static FacingData getFacingData(BlockState state) {
-        if (!setupFacing) {
-            setUpFacingData();
-        }
-        Block block = state.getBlock();
-        for (final Class<? extends Block> c : facingMap.keySet()) {
-            if (c.isInstance(block)) {
-                return facingMap.get(c);
-            }
-        }
-        return null;
-    }
-
+    private static FacingDataStorage facingDataStorage = new FacingDataStorage();
+    
     /**
-     * New doSchematicWorldPickBlock that allows you to choose which block you want
+     * For now this function tries to equip the correct item for placing the block.
+     * @param closest Not used.
+     * @param mc {@code MinecraftClient} for gathering information and accessing the clientPlayer.
+     * @param preference {@code BlockState} of how block should be after placing.
+     * @param pos {@code BlockPos} of block you want to place.
+     * @return true if correct item is in hand
      */
     @Environment(EnvType.CLIENT)
     public static boolean doSchematicWorldPickBlock(boolean closest, MinecraftClient mc, BlockState preference,
@@ -212,33 +125,43 @@ public class Printer {
 
                 if (shouldPick && canPick) {
                     InventoryUtils.setPickedItemToHand(stack, mc);
+                    return true;
                 }
-
-                // return shouldPick == false || canPick;
+                return !shouldPick;
             }
         }
 
         return true;
     }
 
-
+    /**
+     * Not supported.
+     * @param mc {@code MinecraftClient}
+     * @return null
+     */
     public static ActionResult doAccuratePlacePrinter(MinecraftClient mc) {
 	return null;
     }
     
     // For printing delay
-    public static long lastPlaced = new Date().getTime();
-    public static Breaker breaker = new Breaker();
+    private static long lastPlaced = new Date().getTime();
+    private static Breaker breaker = new Breaker();
     
+    // For height datapacks
     public static int worldBottomY = 0;
     public static int worldTopY = 256;
 
+    /**
+     * Trying to place or break a block.
+     * @param mc {@code MinecraftClient} for accessing the playerclient and managers...
+     * @return {@code ActionResult} returns how well the placing/breaking went.
+     */
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
-    	if (breaker.isBreakingBlock()) return ActionResult.SUCCESS;
-    	if (new Date().getTime() < lastPlaced + 1000.0 * EASY_PLACE_MODE_DELAY.getDoubleValue()) return ActionResult.PASS;
+    	if (breaker.isBreakingBlock()) return ActionResult.SUCCESS; // Don't place blocks while we're breaking one
+    	if (new Date().getTime() < lastPlaced + 1000.0 * EASY_PLACE_MODE_DELAY.getDoubleValue()) return ActionResult.PASS; // Check delay between blockplace's
 
-    	
+    	// Get the block the player is currently looking at
         RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, 6, true);
         if (traceWrapper == null) {
             return ActionResult.FAIL;
@@ -248,7 +171,8 @@ public class Printer {
         int posX = tracePos.getX();
         int posY = tracePos.getY();
         int posZ = tracePos.getZ();
-
+        
+        // Get all PlacementParts nearby the player's lookAtBlock
         SubChunkPos cpos = new SubChunkPos(tracePos);
         List<PlacementPart> list = DataManager.getSchematicPlacementManager().getAllPlacementsTouchingSubChunk(cpos);
 
@@ -262,6 +186,7 @@ public class Printer {
         int minY = 0;
         int minZ = 0;
 
+        // Setting min and max x,y,z
         boolean foundBox = false;
         for (PlacementPart part : list) {
             IntBoundingBox pbox = part.getBox();
@@ -300,7 +225,9 @@ public class Printer {
         if (!foundBox) {
             return ActionResult.PASS;
         }
-        LayerRange range = DataManager.getRenderLayerRange(); //add range following
+        
+        
+        LayerRange range = DataManager.getRenderLayerRange(); // get renderingRange
         int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
@@ -359,11 +286,12 @@ public class Printer {
                         continue;
 
                     BlockPos pos = new BlockPos(x, y, z);
-                    if (range.isPositionWithinRange(pos) == false)
+                    if (range.isPositionWithinRange(pos) == false) // Check if inside renderRange
                         continue;
                     BlockState stateSchematic = world.getBlockState(pos);
                     BlockState stateClient = mc.world.getBlockState(pos);
 
+                    // Block breaking
                     if (breakBlocks && stateSchematic != null && !stateClient.isAir()) {
                         if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= 36.0) {
                             
@@ -475,12 +403,6 @@ public class Printer {
 
                                         mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
                                         interact++;
-
-                                        // Click the place block a few times to be sure he is placed
-                                        /*if (interact >= maxInteract) {
-                                        	lastPlaced = new Date().getTime();
-                                            return ActionResult.SUCCESS;
-                                        }*/
                                     }
  
                                     if (clickTimes > 0) {
@@ -492,9 +414,7 @@ public class Printer {
                         }
                         continue;
                     }
-                    if (isPositionCached(pos, false)) {
-                        continue;
-                    }
+                    if (isPositionCached(pos, false)) continue;
 
                     ItemStack stack = ((MaterialCache) MaterialCache.getInstance()).getRequiredBuildItemForState((BlockState)stateSchematic);
                     if (stack.isEmpty() == false && (mc.player.getAbilities().creativeMode || mc.player.getInventory().getSlotWithStack(stack) != -1)) {
@@ -506,7 +426,7 @@ public class Printer {
                         Direction facing = fi.dy.masa.malilib.util.BlockUtils
                                 .getFirstPropertyFacingValue(stateSchematic);
                         if (facing != null) {
-                            FacingData facedata = getFacingData(stateSchematic);
+                            FacingData facedata = facingDataStorage.getFacingData(stateSchematic);
                             if (!canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing))
                                 continue;
 
@@ -615,7 +535,7 @@ public class Printer {
                         // Abort if the required item was not able to be pick-block'd
                         if (!hasPicked) {
 
-                            if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) {
+                            if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) { // When wrong item in hand
                                 return ActionResult.FAIL;
                             }
                             hasPicked = true;
@@ -626,7 +546,8 @@ public class Printer {
 
                         Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
 
-                        // Abort if a wrong item is in the player's hand
+                        // Go to next block if a wrong item is in the player's hand
+                        // It will place the same block per function call
                         if (hand == null) {
                             continue;
                         }

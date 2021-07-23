@@ -14,6 +14,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
 
+import fi.dy.masa.litematica.config.Configs;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.materials.MaterialCache;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager.PlacementPart;
@@ -126,6 +127,13 @@ public class Printer {
                 if (shouldPick && canPick) {
                     InventoryUtils.setPickedItemToHand(stack, mc);
                     return true;
+                } else if (slot == -1 && Configs.Generic.PICK_BLOCK_SHULKERS.getBooleanValue()) {
+                	slot = InventoryUtils.findSlotWithBoxWithItem(mc.player.playerScreenHandler, stack, false);
+                	if (slot != -1) {
+                		ItemStack boxStack = mc.player.playerScreenHandler.slots.get(slot).getStack();
+                        InventoryUtils.setPickedItemToHand(boxStack, mc);
+                        return true;
+                	}
                 }
                 return !shouldPick;
             }

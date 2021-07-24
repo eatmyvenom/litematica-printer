@@ -12,8 +12,7 @@ To set this up just add the latest litematica version to your mods folder as wel
 `easyPlaceModeMaxBlocks`:&emsp;		"Max block interactions per cycle"<br/>
 `easyPlaceModeBreakBlocks`:&emsp;	"Automatically breaks blocks."<br/>
 `easyPlaceModeDelay`:&emsp;			"Delay between printing blocks.Do not set to 0 if you are playing on a server."
-`easyPlaceModeHotbarOnly`:&emsp;	"Only place blocks from your hotbar. This bypasses some anti-cheats."
-
+`easyPlaceModePaper`:&emsp;			"Enable this feature to bypass the built-in papers anti-cheat. This will make the range stricter, delay lower and only pick blocks from the hotbar."<br/>
 ### Handy litematica settings:
 
 `easyPlaceMode`:&emsp;				"When enabled, then simply trying to use an item/place a block on schematic blocks will place that block in that position."<br/>

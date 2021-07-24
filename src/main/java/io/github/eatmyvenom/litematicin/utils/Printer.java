@@ -2,8 +2,8 @@ package io.github.eatmyvenom.litematicin.utils;
 
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_BREAK_BLOCKS;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_DELAY;
-import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_HOTBAR_ONLY;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_MAX_BLOCKS;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_PAPER;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
@@ -122,7 +122,7 @@ public class Printer {
                
                 int slot = inv.getSlotWithStack(stack);
                 boolean shouldPick = inv.selectedSlot != slot;
-                boolean canPick = (slot != -1) || (slot < 9 && EASY_PLACE_MODE_HOTBAR_ONLY.getBooleanValue());
+                boolean canPick = (slot != -1) && slot < 36 && (slot < maxSlotId && EASY_PLACE_MODE_PAPER.getBooleanValue());
 
                 if (shouldPick && canPick) {
                     InventoryUtils.setPickedItemToHand(stack, mc);
@@ -158,6 +158,16 @@ public class Printer {
     // For height datapacks
     public static int worldBottomY = 0;
     public static int worldTopY = 256;
+    
+    // Paper anti-cheat values
+    private static final int maxReachCreative = 7;
+    private static final int maxReachSurvival = 6;
+    private static final int maxSlotId = 9;
+    private static final int maxDistance = 8;
+    // This one is hard to determine, since paper starts to be suspicious when he receives more then 8 packets in a tick.
+    // Value found by pure testing, and can probably be optimized even further
+    private static final double minimumDelay = 0.1D;
+    private static final int paperMaxInteractsPerFunctionCall = 1; // Otherwise to much packets at once
 
     /**
      * Trying to place or break a block.
@@ -167,7 +177,7 @@ public class Printer {
     @Environment(EnvType.CLIENT)
     public static ActionResult doPrinterAction(MinecraftClient mc) {
     	if (breaker.isBreakingBlock()) return ActionResult.SUCCESS; // Don't place blocks while we're breaking one
-    	if (new Date().getTime() < lastPlaced + 1000.0 * EASY_PLACE_MODE_DELAY.getDoubleValue()) return ActionResult.PASS; // Check delay between blockplace's
+    	if (new Date().getTime() < lastPlaced + 1000.0 * (EASY_PLACE_MODE_PAPER.getBooleanValue() ? minimumDelay : EASY_PLACE_MODE_DELAY.getDoubleValue())) return ActionResult.PASS; // Check delay between blockplace's
 
     	// Get the block the player is currently looking at
         RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, 6, true);
@@ -240,6 +250,22 @@ public class Printer {
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
         int maxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
+        
+        // Paper anti-cheat implementation
+        if (EASY_PLACE_MODE_PAPER.getBooleanValue()) {
+        	if (mc.player.getAbilities().creativeMode) {
+        		rangeX = maxReachCreative; 
+        		rangeY = maxReachCreative;
+        		rangeZ = maxReachCreative;
+        	} else {
+        		rangeX = maxReachSurvival; 
+        		rangeY = maxReachSurvival;
+        		rangeZ = maxReachSurvival;
+        	}
+        	maxReach = maxDistance;
+        	EASY_PLACE_MODE_DELAY.setDoubleValue(minimumDelay);
+        }
+        
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
         Direction[] facingSides = Direction.getEntityFacingOrder(mc.player);
         Direction primaryFacing = facingSides[0];
@@ -258,7 +284,7 @@ public class Printer {
          * MC works)
          */
 
-        int maxInteract = EASY_PLACE_MODE_MAX_BLOCKS.getIntegerValue();
+        int maxInteract = EASY_PLACE_MODE_PAPER.getBooleanValue() ? paperMaxInteractsPerFunctionCall : EASY_PLACE_MODE_MAX_BLOCKS.getIntegerValue();
         int interact = 0;
         boolean hasPicked = false;
         Text pickedBlock = null;
@@ -277,7 +303,6 @@ public class Printer {
         fromY = Math.max(Math.min(fromY, worldTopY),worldBottomY); 
 
         // Ensure the positions are within the player's range
-        // TODO: set player's y to eyeHeight, since eyeheights is checked by anticheats
         fromX = Math.max(fromX,mc.player.getBlockX() - rangeX);
         fromY = Math.max(fromY,mc.player.getBlockY() - rangeY);
         fromZ = Math.max(fromZ,mc.player.getBlockZ() - rangeZ);
@@ -295,13 +320,22 @@ public class Printer {
                     double dx = mc.player.getX() - x - 0.5;
                     double dy = mc.player.getY() - y - 0.5;
                     double dz = mc.player.getZ() - z - 0.5;
-
+                    
                     // Another check if its within reach, this time its not checked in a square but in a circle, hard to do this in 3 dimensions
                     if (dx * dx + dy * dy + dz * dz > maxReach * maxReach)
-                        continue;
+                    	continue;
 
-                    BlockPos pos = new BlockPos(x, y, z);
+                    // Paper anti-cheat
+                    double paperDx = mc.player.getX() - x;
+                    double paperDy = mc.player.getEyeY() - y;
+                    double paperDz = mc.player.getZ() - z;
+                    double reachDistance = paperDx * paperDx + paperDy * paperDy + paperDz * paperDz;
                     
+                    if (reachDistance > ((mc.player.getAbilities().creativeMode) ? maxReachCreative * maxReachCreative : maxReachSurvival * maxReachSurvival))
+                    	continue;
+                    
+                    BlockPos pos = new BlockPos(x, y, z);
+
                     if (range.isPositionWithinRange(pos) == false) // Check if block is rendered
                         continue;
                     
@@ -580,9 +614,7 @@ public class Printer {
 
                         // Go to next block if a wrong item is in the player's hand
                         // It will place the same block per function call
-                        if (hand == null) {
-                            continue;
-                        }
+                        if (hand == null) continue;
 
                         Vec3d hitPos = new Vec3d(offX, offY, offZ);
                         // Carpet Accurate Placement protocol support, plus BlockSlab support
@@ -700,7 +732,7 @@ public class Printer {
                 return blockSchematic != blockClient;
             }
         }
-        // TODO: don't really understand this one, false => no block needs to be placed, but since the client's state is air it should place a block
+        // If its air, the block doesn't need any more clicks
         if (stateClient.isAir()) // This is a lot simpler than below. But slightly lacks functionality.
             return false;
         /*
@@ -779,8 +811,8 @@ public class Printer {
     }
 
     /**
-     * Gets the direction necessary to build the block oriented correctly. TODO:
-     * Need a better way to do this.
+     * Gets the direction necessary to build the block oriented correctly. 
+     * TODO: Need a better way to do this.
      */
     private static Direction applyPlacementFacing(BlockState stateSchematic, Direction side, BlockState stateClient) {
         Block blockSchematic = stateSchematic.getBlock();

@@ -21,11 +21,13 @@ To set this up just add the latest litematica version to your mods folder as wel
 `easyPlaceClickAdjacent`:&emsp;		"If enabled, then the Easy Place mode will try to click on existing adjacent blocks. This may help on Spigot or similar servers, which don't allow clicking on air blocks."<br/>
 `pickBlockAuto`:&emsp;				"Automatically pick block before every placed block"<br/>
 `pickBlockEnabled`:&emsp;			"Enables the schematic world pick block hotkeys. There is also a hotkey for toggling this option to toggle those hotkeys... o.o", "Pick Block Hotkeys"<br/>
+`pickBlockShulkers`:&emsp;			"If enabled, then if the required item for the pick block is not found directly in the player's inventory, but there is a Shulker box that contains it, the Shulker Box will be switched to the player's hand instead"<br/>
 `pickBlockIgnoreNBT`:&emsp;			"Ignores the NBT data on the expected vs. found items for pick block. Allows the pick block to work for example with renamed items."<br/>
 `pickBlockableSlots`:&emsp;			"The hotbar slots that are allowed to be used for the schematic pick block. Can use comma separated individual slots and dash separated slot ranges (no spaces anywhere). Example: 2,4-6,9"<br/>
 `placementInfrontOfPlayer`:&emsp;	"When enabled, created placements or moved placements are positioned so that they are fully infront of the player, instead of the placement's origin point being at the player's location"<br/>
 `renderMaterialListInGuis`:&emsp;	"Whether or not the material list should be rendered inside GUIs"<br/>
 `signTextPaste`:&emsp;				"Automatically set the text in the sign GUIs from the schematic"<br/>
+
 <br/>
 `easyPlaceActivation`:&emsp;		"When the easyPlaceMode is enabled, this key must be held to enable placing the blocks when using the vanilla Use key"<br/>
 `easyPlaceToggle`:&emsp;			"Allows quickly toggling on/off the Easy Place mode"<br/>

@@ -239,7 +239,7 @@ public class Printer {
         int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
         int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
-        int MaxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
+        int maxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
         Direction[] facingSides = Direction.getEntityFacingOrder(mc.player);
         Direction primaryFacing = facingSides[0];
@@ -263,6 +263,7 @@ public class Printer {
         boolean hasPicked = false;
         Text pickedBlock = null;
 
+        // Ensure the positions are within the box and within range of the block the player is looking at
         int fromX = Math.max(posX - rangeX, minX);
         int fromY = Math.max(posY - rangeY, minY);
         int fromZ = Math.max(posZ - rangeZ, minZ);
@@ -271,37 +272,46 @@ public class Printer {
         int toY = Math.min(posY + rangeY, maxY);
         int toZ = Math.min(posZ + rangeZ, maxZ);
 
+        // Ensure the Y is between the bottom and top of the world
         toY = Math.max(Math.min(toY,worldTopY),worldBottomY);
         fromY = Math.max(Math.min(fromY, worldTopY),worldBottomY); 
 
-        fromX = Math.max(fromX,(int)mc.player.getX() - rangeX);
-        fromY = Math.max(fromY,(int)mc.player.getY() - rangeY);
-        fromZ = Math.max(fromZ,(int)mc.player.getZ() - rangeZ);
+        // Ensure the positions are within the player's range
+        // TODO: set player's y to eyeHeight, since eyeheights is checked by anticheats
+        fromX = Math.max(fromX,mc.player.getBlockX() - rangeX);
+        fromY = Math.max(fromY,mc.player.getBlockY() - rangeY);
+        fromZ = Math.max(fromZ,mc.player.getBlockZ() - rangeZ);
 
-        toX = Math.min(toX,(int)mc.player.getX() + rangeX);
-        toY = Math.min(toY,(int)mc.player.getY() + rangeY);
-        toZ = Math.min(toZ,(int)mc.player.getZ() + rangeZ);
+        toX = Math.min(toX,mc.player.getBlockX() + rangeX);
+        toY = Math.min(toY,mc.player.getBlockY() + rangeY);
+        toZ = Math.min(toZ,mc.player.getBlockZ() + rangeZ);
+        
         
         for (int x = fromX; x <= toX; x++) {
             for (int y = fromY; y <= toY; y++) {
                 for (int z = fromZ; z <= toZ; z++) {
 
+                	// Offset to player
                     double dx = mc.player.getX() - x - 0.5;
                     double dy = mc.player.getY() - y - 0.5;
                     double dz = mc.player.getZ() - z - 0.5;
 
-                    if (dx * dx + dy * dy + dz * dz > MaxReach * MaxReach) // Check if within reach distance
+                    // Another check if its within reach, this time its not checked in a square but in a circle, hard to do this in 3 dimensions
+                    if (dx * dx + dy * dy + dz * dz > maxReach * maxReach)
                         continue;
 
                     BlockPos pos = new BlockPos(x, y, z);
-                    if (range.isPositionWithinRange(pos) == false) // Check if inside renderRange
+                    
+                    if (range.isPositionWithinRange(pos) == false) // Check if block is rendered
                         continue;
+                    
                     BlockState stateSchematic = world.getBlockState(pos);
                     BlockState stateClient = mc.world.getBlockState(pos);
 
                     // Block breaking
                     if (breakBlocks && stateSchematic != null && !stateClient.isAir()) {
-                        if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= 36.0) {
+                    	// If the block isn't the correct one, AND block is within reach
+                        if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= maxReach * maxReach) {
                             
                         	if (mc.player.getAbilities().creativeMode) {
                         		mc.interactionManager.attackBlock(pos, Direction.DOWN);
@@ -317,10 +327,10 @@ public class Printer {
                         	}
                         }
                     }
-                    if (stateSchematic.isAir())
-                    continue;
                     
-                    // Abort if there is already a block in the target position
+                    if (stateSchematic.isAir()) continue;
+                    
+                    // If there's already a block of the same type, but it needs some more clicks (e.g. repeaters, half slabs, ...)
                     if (printerCheckCancel(stateSchematic, stateClient, mc.player)) {
 
                         /*
@@ -328,7 +338,8 @@ public class Printer {
                          * code clicks the block until the state is the same I don't know if Schematica
                          * does this too, I just did it because I work with a lot of redstone
                          */
-                        if (!stateClient.isAir() && !mc.player.isSneaking() && !isPositionCached(pos, true)) {
+                    	// stateClient.isAir() is already checked in the printCheckCancel
+                        if (!mc.player.isSneaking() && !isPositionCached(pos, true)) {
                             Block cBlock = stateClient.getBlock();
                             Block sBlock = stateSchematic.getBlock();
 
@@ -337,35 +348,37 @@ public class Printer {
                                         .getFirstPropertyFacingValue(stateSchematic);
                                 Direction facingClient = fi.dy.masa.malilib.util.BlockUtils
                                         .getFirstPropertyFacingValue(stateClient);
-
+                                
+                                // If both block face the same direction
                                 if (facingSchematic == facingClient) {
                                     int clickTimes = 0;
                                     Direction side = Direction.NORTH;
+                                    
+                                    // Check how much clicks each type of blocks need to be the same as the schematic
                                     if (sBlock instanceof RepeaterBlock) {
                                         int clientDelay = stateClient.get(RepeaterBlock.DELAY);
                                         int schematicDelay = stateSchematic.get(RepeaterBlock.DELAY);
+                                        
                                         if (clientDelay != schematicDelay) {
-
-                                            if (clientDelay < schematicDelay) {
-                                                clickTimes = schematicDelay - clientDelay;
-                                            } else if (clientDelay > schematicDelay) {
-                                                clickTimes = schematicDelay + (4 - clientDelay);
-                                            }
+                                        	clickTimes = schematicDelay - clientDelay;
+                                        	if (clientDelay > schematicDelay) clickTimes += 4; // == schematicDelay + (4 - clientDelay); with 4-clientDelay the clickTime to zero delay
                                         }
                                         side = Direction.UP;
+                                        
                                     } else if (sBlock instanceof ComparatorBlock) {
-                                        if (stateSchematic.get(ComparatorBlock.MODE) != stateClient
-                                                .get(ComparatorBlock.MODE))
+                                        if (stateSchematic.get(ComparatorBlock.MODE) 
+                                        		!= stateClient.get(ComparatorBlock.MODE))
                                             clickTimes = 1;
                                         side = Direction.UP;
+                                        
                                     } else if (sBlock instanceof LeverBlock) {
-                                        if (stateSchematic.get(LeverBlock.POWERED) != stateClient
-                                                .get(LeverBlock.POWERED))
+                                        if (stateSchematic.get(LeverBlock.POWERED) 
+                                        		!= stateClient.get(LeverBlock.POWERED))
                                             clickTimes = 1;
 
                                         /*
-                                         * I dont know if this direction code is needed. I am just doing it anyway to
-                                         * make it "make sense" to the server (I am emulating what the client does so
+                                         * I don't know if this direction code is needed. I am just doing it anyway so
+                                         * it "make sense" to the server (I am emulating what the client does so
                                          * the server isn't confused)
                                          */
                                         if (stateClient.get(LeverBlock.FACE) == WallMountLocation.CEILING) {
@@ -377,31 +390,32 @@ public class Printer {
                                         }
 
                                     } else if (sBlock instanceof TrapdoorBlock) {
-                                        if (stateSchematic.getMaterial() != Material.METAL && stateSchematic
-                                                .get(TrapdoorBlock.OPEN) != stateClient.get(TrapdoorBlock.OPEN))
+                                        if (stateSchematic.getMaterial() != Material.METAL 
+                                        		&& stateSchematic.get(TrapdoorBlock.OPEN) != stateClient.get(TrapdoorBlock.OPEN))
                                             clickTimes = 1;
+                                        
                                     } else if (sBlock instanceof FenceGateBlock) {
-                                        if (stateSchematic.get(FenceGateBlock.OPEN) != stateClient
-                                                .get(FenceGateBlock.OPEN))
+                                        if (stateSchematic.get(FenceGateBlock.OPEN) 
+                                        		!= stateClient.get(FenceGateBlock.OPEN))
                                             clickTimes = 1;
+                                        
                                     } else if (sBlock instanceof DoorBlock) {
-                                        if (stateClient.getMaterial() != Material.METAL && stateSchematic
-                                                .get(DoorBlock.OPEN) != stateClient.get(DoorBlock.OPEN))
+                                        if (stateClient.getMaterial() != Material.METAL 
+                                        		&& stateSchematic.get(DoorBlock.OPEN) != stateClient.get(DoorBlock.OPEN))
                                             clickTimes = 1;
+                                        
                                     } else if (sBlock instanceof NoteBlock) {
                                         int note = stateClient.get(NoteBlock.NOTE);
                                         int targetNote = stateSchematic.get(NoteBlock.NOTE);
                                         if (note != targetNote) {
 
-                                            if (note < targetNote) {
-                                                clickTimes = targetNote - note;
-                                            } else if (note > targetNote) {
-                                                clickTimes = targetNote + (25 - note);
-                                            }
+                                        	clickTimes = targetNote - note;
+                                        	if (note > targetNote) clickTimes += 25; // == targetNote + (25-note); with (25-note) the amount of clicks to go back to start
                                         }
                                     }
-
-                                    for (int i = 0; i < clickTimes; i++) // Click on the block a few times
+                                    
+                                    // Click on the block the amount of times calculated above
+                                    for (int i = 0; i < clickTimes; i++) 
                                     {
                                         Hand hand = Hand.MAIN_HAND;
 
@@ -411,6 +425,17 @@ public class Printer {
 
                                         mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
                                         interact++;
+                                        
+                                        if (interact > maxInteract) {
+                                        	/*
+                                        	 * When the maxInteract is reached/exceeded && the block is clicked enough times
+                                        	 * it reaches this line and returns without caching the block
+                                        	 */
+                                        	if (i == (clickTimes-1)) // If clicked enough times
+                                        		cacheEasyPlacePosition(pos, true);
+                                        	lastPlaced = new Date().getTime();
+                                            return ActionResult.SUCCESS;
+                                        }
                                     }
  
                                     if (clickTimes > 0) {
@@ -422,30 +447,27 @@ public class Printer {
                         }
                         continue;
                     }
+                    // If block is already placed (=> is already placed)
                     if (isPositionCached(pos, false)) continue;
-
+                    
+                    // If the player has the required item in his inventory or is in creative
                     ItemStack stack = ((MaterialCache) MaterialCache.getInstance()).getRequiredBuildItemForState((BlockState)stateSchematic);
                     if (stack.isEmpty() == false && (mc.player.getAbilities().creativeMode || mc.player.getInventory().getSlotWithStack(stack) != -1)) {
 
-                        if (stateSchematic == stateClient) {
-                            continue;
-                        }
+                        if (stateSchematic == stateClient) continue;
 
                         Direction facing = fi.dy.masa.malilib.util.BlockUtils
                                 .getFirstPropertyFacingValue(stateSchematic);
                         if (facing != null) {
                             FacingData facedata = facingDataStorage.getFacingData(stateSchematic);
-                            if (!canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing))
+                            if (!canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
                                 continue;
 
                             if ((stateSchematic.getBlock() instanceof DoorBlock
                                     && stateSchematic.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER)
                                     || (stateSchematic.getBlock() instanceof BedBlock
-                                            && stateSchematic.get(BedBlock.PART) == BedPart.HEAD)
-
-                            ) {
-                                continue;
-                            }
+                                            && stateSchematic.get(BedBlock.PART) == BedPart.HEAD))
+                            						continue;
                         }
 
                         // Exception for signs (edge case)
@@ -456,8 +478,9 @@ public class Printer {
                                 continue;
 
                         }
-                        double offX = 0.5; // We dont really need this. But I did it anyway so that I could experiment
-                                           // easily.
+                        
+                        // We dont really need this. But I did it anyway so that I could experiment easily.
+                        double offX = 0.5;
                         double offY = 0.5;
                         double offZ = 0.5;
 
@@ -465,9 +488,11 @@ public class Printer {
                         BlockPos npos = pos;
                         Direction side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
                         Block blockSchematic = stateSchematic.getBlock();
+                        
                         if (blockSchematic instanceof WallMountedBlock || blockSchematic instanceof TorchBlock
                                 || blockSchematic instanceof LadderBlock || blockSchematic instanceof TrapdoorBlock
-                                || blockSchematic instanceof TripwireHookBlock || blockSchematic instanceof SignBlock || blockSchematic instanceof EndRodBlock) {
+                                || blockSchematic instanceof TripwireHookBlock || blockSchematic instanceof SignBlock
+                                || blockSchematic instanceof EndRodBlock) {
 
                             /*
                              * Some blocks, especially wall mounted blocks must be placed on another for
@@ -478,6 +503,7 @@ public class Printer {
                             int py = pos.getY();
                             int pz = pos.getZ();
 
+                            
                             if (side == Direction.DOWN) {
                                 py += 1;
                             } else if (side == Direction.UP) {
@@ -532,15 +558,14 @@ public class Printer {
 
                                 // If trapdoor is placed from top or bottom, directionality is decided by player
                                 // direction
-                                if (stateSchematic.get(TrapdoorBlock.FACING).getOpposite() != horizontalFacing) {
+                                if (stateSchematic.get(TrapdoorBlock.FACING).getOpposite() != horizontalFacing)
                                     continue;
-                                }
-
                             }
 
                         }
 
-                        // Abort if the required item was not able to be pick-block'd
+                        // If player hasn't the correct item in his hand yet
+                        // Depending on the maxInteracts, it tries to place the same block types in one function call
                         if (!hasPicked) {
 
                             if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) { // When wrong item in hand
@@ -548,9 +573,8 @@ public class Printer {
                             }
                             hasPicked = true;
                             pickedBlock = stateSchematic.getBlock().getName();
-                        } else if (pickedBlock != null && !pickedBlock.equals(stateSchematic.getBlock().getName())) {
+                        } else if (pickedBlock != null && !pickedBlock.equals(stateSchematic.getBlock().getName()))
                             continue;
-                        }
 
                         Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
 
@@ -564,8 +588,7 @@ public class Printer {
                         // Carpet Accurate Placement protocol support, plus BlockSlab support
                         hitPos = applyHitVec(npos, stateSchematic, hitPos, side);
 
-                        // Mark that this position has been handled (use the non-offset position that is
-                        // checked above)
+                        // Mark that this position has been handled (use the non-offset position that is checked above)
                         cacheEasyPlacePosition(pos, false);
 
                         BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
@@ -575,6 +598,9 @@ public class Printer {
 
                         mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
                         interact++;
+                        
+                        // Place multiple slabs/pickles at once, since this is one block
+                        // Disadvantage: you can exceed the maxInteract.
                         if (stateSchematic.getBlock() instanceof SlabBlock
                                 && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
                             stateClient = mc.world.getBlockState(npos);
@@ -602,14 +628,12 @@ public class Printer {
                         	lastPlaced = new Date().getTime();
                             return ActionResult.SUCCESS;
                         }
-
                     }
-
                 }
             }
-
         }
 
+        // If not exceeded maxInteract but placed a few blocks
         if (interact > 0) {
         	lastPlaced = new Date().getTime();
         	return ActionResult.SUCCESS;
@@ -617,14 +641,15 @@ public class Printer {
         return ActionResult.FAIL;
     }
 
-    /*
+    /**
      * Checks if the block can be placed in the correct orientation if player is
      * facing a certain direction Dont place block if orientation will be wrong
+     * @return true if face can be placed
      */
     private static boolean canPlaceFace(FacingData facedata, BlockState stateSchematic, PlayerEntity player,
-            Direction primaryFacing, Direction horizontalFacing) {
-        Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(stateSchematic);
-        if (facing != null && facedata != null) {
+            Direction primaryFacing, Direction horizontalFacing, Direction facing) {
+        // facing != null is already checked before this function
+    	if (facedata != null) {
 
             switch (facedata.type) {
             case 0: // All directions (ie, observers and pistons)
@@ -651,6 +676,13 @@ public class Printer {
         }
     }
 
+    /**
+     * Check whether there's already a block placed at that location and if it needs some extra clicks (e.g. Half slab, repeater, ...)
+     * @param stateSchematic
+     * @param stateClient
+     * @param player
+     * @return true if the block needs another click
+     */
     private static boolean printerCheckCancel(BlockState stateSchematic, BlockState stateClient,
             PlayerEntity player) {
         Block blockSchematic = stateSchematic.getBlock();
@@ -668,7 +700,7 @@ public class Printer {
                 return blockSchematic != blockClient;
             }
         }
-
+        // TODO: don't really understand this one, false => no block needs to be placed, but since the client's state is air it should place a block
         if (stateClient.isAir()) // This is a lot simpler than below. But slightly lacks functionality.
             return false;
         /*
@@ -684,7 +716,9 @@ public class Printer {
 
         return true;
     }
-
+    
+    
+    // Possible same as WorldUtils.applyCarpetProtocolHitVec
     /**
      * Apply hit vectors (used to be Carpet hit vec protocol, but I think it is
      * uneccessary now with orientation/states programmed in)
@@ -744,7 +778,7 @@ public class Printer {
         return new Vec3d(x + dx, y + dy, z + dz);
     }
 
-    /*
+    /**
      * Gets the direction necessary to build the block oriented correctly. TODO:
      * Need a better way to do this.
      */
@@ -816,6 +850,12 @@ public class Printer {
         return side;
     }
 
+    /**
+     * 
+     * @param pos
+     * @param useClicked
+     * @return true when the {@code pos} is cached (if not {@code useClicked}, or if the block is cached and the block is a clickable one (repeater, ...)
+     */
     public static boolean isPositionCached(BlockPos pos, boolean useClicked) {
         long currentTime = System.nanoTime();
         boolean cached = false;
@@ -845,6 +885,11 @@ public class Printer {
         return cached;
     }
 
+    /**
+     * Cache a placed block for an amount of time.
+     * @param pos
+     * @param useClicked
+     */
     private static void cacheEasyPlacePosition(BlockPos pos, boolean useClicked) {
         PositionCache item = new PositionCache(pos, System.nanoTime(), useClicked ? 1000000000 : 2000000000);
         // TODO: Create a separate cache for clickable items, as this just makes

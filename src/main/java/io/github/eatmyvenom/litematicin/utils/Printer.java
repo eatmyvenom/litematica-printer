@@ -371,7 +371,10 @@ public class Printer {
                         }
                     }
                     
-                    if (stateSchematic.isAir()) continue;
+                    // Skip non source fluids & air
+                    if (stateSchematic.isAir() 
+                            || (stateSchematic.contains(FluidBlock.LEVEL) && stateSchematic.get(FluidBlock.LEVEL) != 0)) 
+                        continue;
                     
                     // If there's already a block of the same type, but it needs some more clicks (e.g. repeaters, half slabs, ...)
                     if (printerCheckCancel(stateSchematic, stateClient, mc.player)) {
@@ -620,38 +623,50 @@ public class Printer {
                             }
 
                         }
-
+                        
                         // If player hasn't the correct item in his hand yet
                         // Depending on the maxInteracts, it tries to place the same block types in one function call
                         if (!hasPicked) {
-
-                            if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) { // When wrong item in hand
+                            if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) // When wrong item in hand
                                 return ActionResult.FAIL;
-                            }
                             hasPicked = true;
                             pickedBlock = stateSchematic.getBlock().getName();
                         } else if (pickedBlock != null && !pickedBlock.equals(stateSchematic.getBlock().getName()))
                             continue;
-
+                        
                         Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
 
                         // Go to next block if a wrong item is in the player's hand
                         // It will place the same block per function call
-                        if (hand == null) continue;
-
+                        if (hand == null)
+                            continue;
+                        
                         Vec3d hitPos = new Vec3d(offX, offY, offZ);
                         // Carpet Accurate Placement protocol support, plus BlockSlab support
                         hitPos = applyHitVec(npos, stateSchematic, hitPos, side);
-                        
-                        // Mark that this position has been handled (use the non-offset position that is checked above)
-                        cacheEasyPlacePosition(pos, false);
                         
                         BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
                         
                         // System.out.printf("pos: %s side: %s, hit: %s\n", pos, side, hitPos);
                         // pos, side, hitPos
+                        
+                        ActionResult actionResult = mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
 
-                        mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
+                        // Test if the blockPlace failed, in this case we need to use it as an item
+                        if (!actionResult.isAccepted() && actionResult != ActionResult.FAIL) {
+                            ViewResult result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc);
+                            if (result == ViewResult.INVISIBLE)
+                                continue;
+                            // An overrided minecraft function so we can use a fake rotation
+                            actionResult = InteractionUtils.interactItem(mc, hand, result);
+                        }
+                        
+                        // Placement failed
+                        if (actionResult != ActionResult.SUCCESS)
+                            continue;
+                        
+                        // Mark that this position has been handled (use the non-offset position that is checked above)
+                        cacheEasyPlacePosition(pos, false);
                         interact++;
                         
                         // Place multiple slabs/pickles at once, since this is one block
@@ -905,7 +920,7 @@ public class Printer {
             return stateSchematic.get(TripwireHookBlock.FACING);
         } else if (blockSchematic instanceof EndRodBlock) {
             return stateSchematic.get(EndRodBlock.FACING);
-        } 
+        }
 
         // TODO: Add more for other blocks
         return side;

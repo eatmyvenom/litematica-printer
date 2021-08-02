@@ -182,8 +182,31 @@ public class Printer {
     	if (breaker.isBreakingBlock()) return ActionResult.SUCCESS; // Don't place blocks while we're breaking one
     	if (new Date().getTime() < lastPlaced + 1000.0 * (EASY_PLACE_MODE_PAPER.getBooleanValue() ? minimumDelay : EASY_PLACE_MODE_DELAY.getDoubleValue())) return ActionResult.PASS; // Check delay between blockplace's
 
+    	// Configs
+    	int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
+        int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
+        int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
+        int maxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
+        boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
+        
+        // Paper anti-cheat implementation
+        if (EASY_PLACE_MODE_PAPER.getBooleanValue()) {
+            if (mc.player.getAbilities().creativeMode) {
+                rangeX = maxReachCreative; 
+                rangeY = maxReachCreative;
+                rangeZ = maxReachCreative;
+            } else {
+                rangeX = maxReachSurvival; 
+                rangeY = maxReachSurvival;
+                rangeZ = maxReachSurvival;
+            }
+            maxReach = maxDistance;
+            EASY_PLACE_MODE_DELAY.setDoubleValue(minimumDelay);
+        }
+        
+    	
     	// Get the block the player is currently looking at
-        RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, 6, true);
+        RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, maxReach, true);
         if (traceWrapper == null) {
             return ActionResult.FAIL;
         }
@@ -248,28 +271,6 @@ public class Printer {
         }
 
         LayerRange range = DataManager.getRenderLayerRange(); // get renderingRange
-
-        int rangeX = EASY_PLACE_MODE_RANGE_X.getIntegerValue();
-        int rangeY = EASY_PLACE_MODE_RANGE_Y.getIntegerValue();
-        int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
-        int maxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
-        
-        // Paper anti-cheat implementation
-        if (EASY_PLACE_MODE_PAPER.getBooleanValue()) {
-        	if (mc.player.getAbilities().creativeMode) {
-        		rangeX = maxReachCreative; 
-        		rangeY = maxReachCreative;
-        		rangeZ = maxReachCreative;
-        	} else {
-        		rangeX = maxReachSurvival; 
-        		rangeY = maxReachSurvival;
-        		rangeZ = maxReachSurvival;
-        	}
-        	maxReach = maxDistance;
-        	EASY_PLACE_MODE_DELAY.setDoubleValue(minimumDelay);
-        }
-        
-        boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
         Direction[] facingSides = Direction.getEntityFacingOrder(mc.player);
         Direction primaryFacing = facingSides[0];
         Direction horizontalFacing = primaryFacing; // For use in blocks with only horizontal rotation
@@ -329,13 +330,15 @@ public class Printer {
                     	continue;
 
                     // Paper anti-cheat
-                    double paperDx = mc.player.getX() - x;
-                    double paperDy = mc.player.getEyeY() - y;
-                    double paperDz = mc.player.getZ() - z;
-                    double reachDistance = paperDx * paperDx + paperDy * paperDy + paperDz * paperDz;
-                    
-                    if (reachDistance > ((mc.player.getAbilities().creativeMode) ? maxReachCreative * maxReachCreative : maxReachSurvival * maxReachSurvival))
-                    	continue;
+                    if (EASY_PLACE_MODE_PAPER.getBooleanValue()) {
+                        double paperDx = mc.player.getX() - x;
+                        double paperDy = mc.player.getEyeY() - y;
+                        double paperDz = mc.player.getZ() - z;
+                        double reachDistance = paperDx * paperDx + paperDy * paperDy + paperDz * paperDz;
+                        
+                        if (reachDistance > ((mc.player.getAbilities().creativeMode) ? maxReachCreative * maxReachCreative : maxReachSurvival * maxReachSurvival))
+                        	continue;
+                    }
                     
                     BlockPos pos = new BlockPos(x, y, z);
 

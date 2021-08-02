@@ -54,7 +54,8 @@ public class FacingDataStorage {
      */
     private void setUpFacingData() {
         /*
-         * 0 = Normal up/down/east/west/south/north directions 1 = Horizontal directions
+         * 0 = Normal up/down/east/west/south/north directions
+         * 1 = Horizontal directions
          * 2 = Wall Attactchable block
          * 
          * 

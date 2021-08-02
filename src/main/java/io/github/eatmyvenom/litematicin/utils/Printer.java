@@ -37,7 +37,9 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.ComparatorBlock;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.EndRodBlock;
+import net.minecraft.block.FallingBlock;
 import net.minecraft.block.FenceGateBlock;
+import net.minecraft.block.FluidBlock;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.LadderBlock;
 import net.minecraft.block.LeverBlock;
@@ -45,15 +47,10 @@ import net.minecraft.block.Material;
 import net.minecraft.block.NoteBlock;
 import net.minecraft.block.PillarBlock;
 import net.minecraft.block.RepeaterBlock;
-import net.minecraft.block.SandBlock;
-import net.minecraft.block.SnowBlock;
-import net.minecraft.block.ConcretePowderBlock;
-import net.minecraft.block.GravelBlock;
-import net.minecraft.block.AnvilBlock;
-import net.minecraft.block.DragonEggBlock;
 import net.minecraft.block.SeaPickleBlock;
 import net.minecraft.block.SignBlock;
 import net.minecraft.block.SlabBlock;
+import net.minecraft.block.SnowBlock;
 import net.minecraft.block.StairsBlock;
 import net.minecraft.block.TorchBlock;
 import net.minecraft.block.TrapdoorBlock;
@@ -347,10 +344,10 @@ public class Printer {
                   
                     BlockState stateSchematic = world.getBlockState(pos);
                     BlockState stateClient = mc.world.getBlockState(pos);
-                  
+
                     // Block breaking
-                    if (breakBlocks && stateSchematic != null && !stateClient.isAir() && !stateClient.getBlock().getTranslationKey().contains((String) "water") && !stateClient.getBlock().getTranslationKey().contains((String) "lava")) {
-                        if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= MaxReach * MaxReach) {
+                    if (breakBlocks && stateSchematic != null && !stateClient.isAir() && !(stateClient.getBlock() instanceof FluidBlock)) {
+                        if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= maxReach * maxReach) {
                         	if (mc.player.getAbilities().creativeMode) {
                         		mc.interactionManager.attackBlock(pos, Direction.DOWN);
                                 interact++;
@@ -359,12 +356,13 @@ public class Printer {
                                 	lastPlaced = new Date().getTime();
                                     return ActionResult.SUCCESS;
                                 }
-                        	} else { // For survival
-				if (!EASY_PLACE_MODE_PAPER.getBooleanValue()) {
-				    mc.interactionManager.attackBlock(pos, Direction.DOWN); //yes, this seemingly needless line adds functionality but paper would not allow it.
-				    return ActionResult.SUCCESS;
-				}
-                            	breaker.startBreakingBlock(pos, mc); // it need to avoid unbreakable blocks and just added water and lava, but its not block so somehow made it work
+                        	} else if (stateClient.getBlock().getHardness() != -1.0f) { // For survival, (don't break unbreakable blocks)
+                        	    // When breakInstantly, a single attack is more then enough, (paper doesn't allow this)
+                				if (stateClient.getBlock().getHardness() == 0 && !EASY_PLACE_MODE_PAPER.getBooleanValue()) {
+                				    mc.interactionManager.attackBlock(pos, Direction.DOWN);
+                				    return ActionResult.SUCCESS;
+                				}
+                            	breaker.startBreakingBlock(pos, mc);
                             	return ActionResult.SUCCESS;
                         	}
                         }
@@ -500,14 +498,14 @@ public class Printer {
                         if (stateSchematic == stateClient) {
                             continue;
                         // When gravity block, check if there's a block underneath
-                        } else if (sBlock instanceof SandBlock || sBlock instanceof ConcretePowderBlock 
-                            || sBlock instanceof GravelBlock || sBlock instanceof AnvilBlock || sBlock instanceof DragonEggBlock) {
-			                  BlockPos Offsetpos = new BlockPos(x, y-1, z);
+                        } else if (sBlock instanceof FallingBlock) {
+                            BlockPos Offsetpos = new BlockPos(x, y-1, z);
                     		BlockState OffsetstateSchematic = world.getBlockState(Offsetpos);
                     		BlockState OffsetstateClient = mc.world.getBlockState(Offsetpos);
-                                        if (OffsetstateClient.isAir() || (breakBlocks && !OffsetstateClient.getBlock().getName().equals(OffsetstateSchematic.getBlock().getName())) )
-                                            continue;
-                                    } 
+                    		
+                            if (FallingBlock.canFallThrough(OffsetstateClient) || (breakBlocks && !OffsetstateClient.getBlock().getName().equals(OffsetstateSchematic.getBlock().getName())) )
+                                continue;
+                        } 
 
 
                         Direction facing = fi.dy.masa.malilib.util.BlockUtils
@@ -542,15 +540,10 @@ public class Printer {
                         BlockPos npos = pos;
                         Direction side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
                         Block blockSchematic = stateSchematic.getBlock();
-
-                        // Don't place torches in water or lava
-                        if (blockSchematic instanceof TorchBlock) {
-                        BlockPos Offsetpos = new BlockPos(x, y-1, z);
-                        BlockState OffsetstateClient = mc.world.getBlockState(Offsetpos);
-                                if(OffsetstateClient.getBlock().getTranslationKey().contains((String) "water") || OffsetstateClient.getBlock().getTranslationKey().contains((String) "lava")){
-                                continue;}
-                        }
-
+                        
+                        // This should prevent the printer from placing torches and ... in water
+                        if (!blockSchematic.canPlaceAt(stateSchematic, mc.world, pos)) continue;
+                        
                         if (blockSchematic instanceof WallMountedBlock || blockSchematic instanceof TorchBlock
                                 || blockSchematic instanceof LadderBlock || blockSchematic instanceof TrapdoorBlock
                                 || blockSchematic instanceof TripwireHookBlock || blockSchematic instanceof SignBlock
@@ -564,7 +557,6 @@ public class Printer {
                             int px = pos.getX();
                             int py = pos.getY();
                             int pz = pos.getZ();
-
                             
                             if (side == Direction.DOWN) {
                                 py += 1;
@@ -647,12 +639,12 @@ public class Printer {
                         Vec3d hitPos = new Vec3d(offX, offY, offZ);
                         // Carpet Accurate Placement protocol support, plus BlockSlab support
                         hitPos = applyHitVec(npos, stateSchematic, hitPos, side);
-
+                        
                         // Mark that this position has been handled (use the non-offset position that is checked above)
                         cacheEasyPlacePosition(pos, false);
-
+                        
                         BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
-
+                        
                         // System.out.printf("pos: %s side: %s, hit: %s\n", pos, side, hitPos);
                         // pos, side, hitPos
 
@@ -673,7 +665,7 @@ public class Printer {
                                 interact++;
                             }
                         }
-                        if (stateSchematic.getBlock() instanceof SeaPickleBlock
+                        else if (stateSchematic.getBlock() instanceof SeaPickleBlock
                                 && stateSchematic.get(SeaPickleBlock.PICKLES)>1) {
                             stateClient = mc.world.getBlockState(npos);
                             if (stateClient.getBlock() instanceof SeaPickleBlock
@@ -766,7 +758,8 @@ public class Printer {
                 return false;
         }
         // If its air, the block doesn't need to be clicked again
-        if (stateClient.isAir() || stateClient.getBlock().getTranslationKey().contains((String) "water") || stateClient.getBlock().getTranslationKey().contains((String) "lava")) // This is a lot simpler than below. But slightly lacks functionality.
+        // This is a lot simpler than below. But slightly lacks functionality.
+        if (stateClient.isAir() || stateClient.getBlock() instanceof FluidBlock) 
             return false;
         /*
          * if (trace.getType() != HitResult.Type.BLOCK) { return false; }
@@ -909,7 +902,7 @@ public class Printer {
             return stateSchematic.get(TripwireHookBlock.FACING);
         } else if (blockSchematic instanceof EndRodBlock) {
             return stateSchematic.get(EndRodBlock.FACING);
-        }
+        } 
 
         // TODO: Add more for other blocks
         return side;

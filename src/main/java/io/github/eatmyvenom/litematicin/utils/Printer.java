@@ -67,6 +67,7 @@ import net.minecraft.block.enums.WallMountLocation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -499,203 +500,249 @@ public class Printer {
                     // If the player has the required item in his inventory or is in creative
                     ItemStack stack = ((MaterialCache) MaterialCache.getInstance()).getRequiredBuildItemForState((BlockState)stateSchematic);
                     if (stack.isEmpty() == false && (mc.player.getAbilities().creativeMode || mc.player.getInventory().getSlotWithStack(stack) != -1)) {
-
-                            Block sBlock = stateSchematic.getBlock();
-                        if (stateSchematic == stateClient) {
+                        
+                        Block sBlock = stateSchematic.getBlock();
+                        
+                        if (stateSchematic == stateClient)
                             continue;
-                        // When gravity block, check if there's a block underneath
-                        } else if (sBlock instanceof FallingBlock) {
-                            BlockPos Offsetpos = new BlockPos(x, y-1, z);
-                    		BlockState OffsetstateSchematic = world.getBlockState(Offsetpos);
-                    		BlockState OffsetstateClient = mc.world.getBlockState(Offsetpos);
-                    		
-                            if (FallingBlock.canFallThrough(OffsetstateClient) || (breakBlocks && !OffsetstateClient.getBlock().getName().equals(OffsetstateSchematic.getBlock().getName())) )
-                                continue;
-                        } 
-
-
-                        Direction facing = fi.dy.masa.malilib.util.BlockUtils
-                                .getFirstPropertyFacingValue(stateSchematic);
-                        if (facing != null) {
-                            FacingData facedata = facingDataStorage.getFacingData(stateSchematic);
-                            if (!canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
-                                continue;
-
-                            if ((stateSchematic.getBlock() instanceof DoorBlock
-                                    && stateSchematic.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER)
-                                    || (stateSchematic.getBlock() instanceof BedBlock
-                                            && stateSchematic.get(BedBlock.PART) == BedPart.HEAD))
-                            						continue;
-                        }
-
-                        // Exception for signs (edge case)
-                        if (stateSchematic.getBlock() instanceof SignBlock
-                                && !(stateSchematic.getBlock() instanceof WallSignBlock)) {
-                            if ((MathHelper.floor((double) ((180.0F + mc.player.getYaw()) * 16.0F / 360.0F) + 0.5D)
-                                    & 15) != stateSchematic.get(SignBlock.ROTATION))
-                                continue;
-
-                        }
                         
-                        // We dont really need this. But I did it anyway so that I could experiment easily.
-                        double offX = 0.5;
-                        double offY = 0.5;
-                        double offZ = 0.5;
-
-                        Direction sideOrig = Direction.NORTH;
-                        BlockPos npos = pos;
-                        Direction side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
-                        Block blockSchematic = stateSchematic.getBlock();
-                        
-                        // This should prevent the printer from placing torches and ... in water
-                        if (!blockSchematic.canPlaceAt(stateSchematic, mc.world, pos)) continue;
-                        
-                        if (blockSchematic instanceof WallMountedBlock || blockSchematic instanceof TorchBlock
-                                || blockSchematic instanceof LadderBlock || blockSchematic instanceof TrapdoorBlock
-                                || blockSchematic instanceof TripwireHookBlock || blockSchematic instanceof SignBlock
-                                || blockSchematic instanceof EndRodBlock) {
-
-                            /*
-                             * Some blocks, especially wall mounted blocks must be placed on another for
-                             * directionality to work Basically, the block pos sent must be a "clicked"
-                             * block.
-                             */
-                            int px = pos.getX();
-                            int py = pos.getY();
-                            int pz = pos.getZ();
+                        // If the item is a block
+                        if (stack.getItem() instanceof BlockItem) {
+                            // When gravity block, check if there's a block underneath
+                            if (sBlock instanceof FallingBlock) {
+                                BlockPos Offsetpos = new BlockPos(x, y-1, z);
+                        		BlockState OffsetstateSchematic = world.getBlockState(Offsetpos);
+                        		BlockState OffsetstateClient = mc.world.getBlockState(Offsetpos);
+                        		
+                                if (FallingBlock.canFallThrough(OffsetstateClient) || (breakBlocks && !OffsetstateClient.getBlock().getName().equals(OffsetstateSchematic.getBlock().getName())) )
+                                    continue;
+                            } 
+    
+    
+                            Direction facing = fi.dy.masa.malilib.util.BlockUtils
+                                    .getFirstPropertyFacingValue(stateSchematic);
+                            if (facing != null) {
+                                FacingData facedata = facingDataStorage.getFacingData(stateSchematic);
+                                if (!canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
+                                    continue;
+    
+                                if ((stateSchematic.getBlock() instanceof DoorBlock
+                                        && stateSchematic.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER)
+                                        || (stateSchematic.getBlock() instanceof BedBlock
+                                                && stateSchematic.get(BedBlock.PART) == BedPart.HEAD))
+                                						continue;
+                            }
+                            // Exception for signs (edge case)
+                            if (stateSchematic.getBlock() instanceof SignBlock
+                                    && !(stateSchematic.getBlock() instanceof WallSignBlock)) {
+                                if ((MathHelper.floor((double) ((180.0F + mc.player.getYaw()) * 16.0F / 360.0F) + 0.5D)
+                                        & 15) != stateSchematic.get(SignBlock.ROTATION))
+                                    continue;
+    
+                            }
                             
-                            if (side == Direction.DOWN) {
-                                py += 1;
-                            } else if (side == Direction.UP) {
-                                py += -1;
-                            } else if (side == Direction.NORTH) {
-                                pz += 1;
-                            } else if (side == Direction.SOUTH) {
-                                pz += -1;
-                            } else if (side == Direction.EAST) {
-                                px += -1;
-                            } else if (side == Direction.WEST) {
-                                px += 1;
-                            }
-
-                            npos = new BlockPos(px, py, pz);
-
-                            BlockState clientStateItem = mc.world.getBlockState(npos);
-
-                            if (clientStateItem == null || clientStateItem.isAir()) {
-                                if (!(blockSchematic instanceof TrapdoorBlock)) {
-                                    continue;
-                                }
-                                BlockPos testPos;
-
+                            // We dont really need this. But I did it anyway so that I could experiment easily.
+                            double offX = 0.5;
+                            double offY = 0.5;
+                            double offZ = 0.5;
+    
+                            Direction sideOrig = Direction.NORTH;
+                            BlockPos npos = pos;
+                            Direction side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
+                            Block blockSchematic = stateSchematic.getBlock();
+                            
+                            // This should prevent the printer from placing torches and ... in water
+                            if (!blockSchematic.canPlaceAt(stateSchematic, mc.world, pos)) continue;
+                            
+                            if (blockSchematic instanceof WallMountedBlock || blockSchematic instanceof TorchBlock
+                                    || blockSchematic instanceof LadderBlock || blockSchematic instanceof TrapdoorBlock
+                                    || blockSchematic instanceof TripwireHookBlock || blockSchematic instanceof SignBlock
+                                    || blockSchematic instanceof EndRodBlock) {
+    
                                 /*
-                                 * Trapdoors are special. They can also be placed on top, or below another block
+                                 * Some blocks, especially wall mounted blocks must be placed on another for
+                                 * directionality to work Basically, the block pos sent must be a "clicked"
+                                 * block.
                                  */
-                                if (stateSchematic.get(TrapdoorBlock.HALF) == BlockHalf.TOP) {
-                                    testPos = new BlockPos(pos.getX(), pos.getY() + 1, pos.getZ());
-                                    side = Direction.DOWN;
-                                } else {
-                                    testPos = new BlockPos(pos.getX(), pos.getY() - 1, pos.getZ());
-                                    side = Direction.UP;
+                                int px = pos.getX();
+                                int py = pos.getY();
+                                int pz = pos.getZ();
+                                
+                                if (side == Direction.DOWN) {
+                                    py += 1;
+                                } else if (side == Direction.UP) {
+                                    py += -1;
+                                } else if (side == Direction.NORTH) {
+                                    pz += 1;
+                                } else if (side == Direction.SOUTH) {
+                                    pz += -1;
+                                } else if (side == Direction.EAST) {
+                                    px += -1;
+                                } else if (side == Direction.WEST) {
+                                    px += 1;
                                 }
-                                BlockState clientStateItemTest = mc.world.getBlockState(testPos);
-
-                                if (clientStateItemTest == null || clientStateItemTest.isAir()) {
-                                    BlockState schematicNItem = world.getBlockState(npos);
-
-                                    BlockState schematicTItem = world.getBlockState(testPos);
-
-                                    /*
-                                     * If possible, it is always best to attatch the trapdoor to an actual block
-                                     * that exists on the world But other times, it can't be helped
-                                     */
-                                    if ((schematicNItem != null && !schematicNItem.isAir())
-                                            || (schematicTItem != null && !schematicTItem.isAir()))
+    
+                                npos = new BlockPos(px, py, pz);
+    
+                                BlockState clientStateItem = mc.world.getBlockState(npos);
+    
+                                if (clientStateItem == null || clientStateItem.isAir()) {
+                                    if (!(blockSchematic instanceof TrapdoorBlock)) {
                                         continue;
-                                    npos = pos;
-                                } else
-                                    npos = testPos;
-
-                                // If trapdoor is placed from top or bottom, directionality is decided by player
-                                // direction
-                                if (stateSchematic.get(TrapdoorBlock.FACING).getOpposite() != horizontalFacing)
-                                    continue;
+                                    }
+                                    BlockPos testPos;
+    
+                                    /*
+                                     * Trapdoors are special. They can also be placed on top, or below another block
+                                     */
+                                    if (stateSchematic.get(TrapdoorBlock.HALF) == BlockHalf.TOP) {
+                                        testPos = new BlockPos(pos.getX(), pos.getY() + 1, pos.getZ());
+                                        side = Direction.DOWN;
+                                    } else {
+                                        testPos = new BlockPos(pos.getX(), pos.getY() - 1, pos.getZ());
+                                        side = Direction.UP;
+                                    }
+                                    BlockState clientStateItemTest = mc.world.getBlockState(testPos);
+    
+                                    if (clientStateItemTest == null || clientStateItemTest.isAir()) {
+                                        BlockState schematicNItem = world.getBlockState(npos);
+    
+                                        BlockState schematicTItem = world.getBlockState(testPos);
+    
+                                        /*
+                                         * If possible, it is always best to attatch the trapdoor to an actual block
+                                         * that exists on the world But other times, it can't be helped
+                                         */
+                                        if ((schematicNItem != null && !schematicNItem.isAir())
+                                                || (schematicTItem != null && !schematicTItem.isAir()))
+                                            continue;
+                                        npos = pos;
+                                    } else
+                                        npos = testPos;
+    
+                                    // If trapdoor is placed from top or bottom, directionality is decided by player
+                                    // direction
+                                    if (stateSchematic.get(TrapdoorBlock.FACING).getOpposite() != horizontalFacing)
+                                        continue;
+                                }
+    
                             }
+                            
+                            // If player hasn't the correct item in his hand yet
+                            // Depending on the maxInteracts, it tries to place the same block types in one function call
+                            if (!hasPicked) {
+                                if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) // When wrong item in hand
+                                    return ActionResult.FAIL;
+                                hasPicked = true;
+                                pickedBlock = stateSchematic.getBlock().getName();
+                            } else if (pickedBlock != null && !pickedBlock.equals(stateSchematic.getBlock().getName()))
+                                continue;
+                            
+                            Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
 
-                        }
-                        
-                        // If player hasn't the correct item in his hand yet
-                        // Depending on the maxInteracts, it tries to place the same block types in one function call
-                        if (!hasPicked) {
-                            if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) // When wrong item in hand
-                                return ActionResult.FAIL;
-                            hasPicked = true;
-                            pickedBlock = stateSchematic.getBlock().getName();
-                        } else if (pickedBlock != null && !pickedBlock.equals(stateSchematic.getBlock().getName()))
-                            continue;
-                        
-                        Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
+                            // Go to next block if a wrong item is in the player's hand
+                            // It will place the same block per function call
+                            if (hand == null)
+                                continue;
+                            
+                            Vec3d hitPos = new Vec3d(offX, offY, offZ);
+                            // Carpet Accurate Placement protocol support, plus BlockSlab support
+                            hitPos = applyHitVec(npos, stateSchematic, hitPos, side);
+                            
+                            BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
+                            
+                            // System.out.printf("pos: %s side: %s, hit: %s\n", pos, side, hitPos);
+                            // pos, side, hitPos
+                            
+                            ActionResult actionResult = mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
 
-                        // Go to next block if a wrong item is in the player's hand
-                        // It will place the same block per function call
-                        if (hand == null)
-                            continue;
-                        
-                        Vec3d hitPos = new Vec3d(offX, offY, offZ);
-                        // Carpet Accurate Placement protocol support, plus BlockSlab support
-                        hitPos = applyHitVec(npos, stateSchematic, hitPos, side);
-                        
-                        BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
-                        
-                        // System.out.printf("pos: %s side: %s, hit: %s\n", pos, side, hitPos);
-                        // pos, side, hitPos
-                        
-                        ActionResult actionResult = mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
+                            // Test if the blockPlace failed, in this case we need to use it as an item
+                            if (!actionResult.isAccepted() && actionResult != ActionResult.FAIL) {
+                                ViewResult result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc);
+                                if (result == ViewResult.INVISIBLE)
+                                    continue;
+                                // An overrided minecraft function so we can use a fake rotation
+                                actionResult = InteractionUtils.interactItem(mc, hand, result);
+                            }
+                            
+                            // Placement failed
+                            if (actionResult != ActionResult.SUCCESS)
+                                continue;
+                            
+                            // Mark that this position has been handled (use the non-offset position that is checked above)
+                            cacheEasyPlacePosition(pos, false);
+                            interact++;
+                            
+                            // Place multiple slabs/pickles at once, since this is one block
+                            // Disadvantage: you can exceed the maxInteract.
+                            if (stateSchematic.getBlock() instanceof SlabBlock
+                                    && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
+                                stateClient = mc.world.getBlockState(npos);
 
-                        // Test if the blockPlace failed, in this case we need to use it as an item
-                        if (!actionResult.isAccepted() && actionResult != ActionResult.FAIL) {
-                            ViewResult result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc);
+                                if (stateClient.getBlock() instanceof SlabBlock
+                                        && stateClient.get(SlabBlock.TYPE) != SlabType.DOUBLE) {
+                                    side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
+                                    hitResult = new BlockHitResult(hitPos, side, npos, false);
+                                    mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
+                                    interact++;
+                                }
+                            }
+                            else if (stateSchematic.getBlock() instanceof SeaPickleBlock
+                                    && stateSchematic.get(SeaPickleBlock.PICKLES)>1) {
+                                stateClient = mc.world.getBlockState(npos);
+                                if (stateClient.getBlock() instanceof SeaPickleBlock
+                                        && stateClient.get(SeaPickleBlock.PICKLES) < stateSchematic.get(SeaPickleBlock.PICKLES)) {
+                                    side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
+                                    hitResult = new BlockHitResult(hitPos, side, npos, false);
+                                    mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
+                                    interact++;
+                                }
+                            }
+                            
+                        } else { // If its an item
+                            // TODO remove some of the duplicate code
+                            // TODO support more items
+                            ViewResult result = ViewResult.INVISIBLE;
+                            
+                            // Currently only water/lava blocks placement is supported
+                            if (stateSchematic.getBlock() instanceof FluidBlock) {
+                                result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc);
+                            }
+                            
                             if (result == ViewResult.INVISIBLE)
                                 continue;
-                            // An overrided minecraft function so we can use a fake rotation
-                            actionResult = InteractionUtils.interactItem(mc, hand, result);
-                        }
-                        
-                        // Placement failed
-                        if (actionResult != ActionResult.SUCCESS)
-                            continue;
-                        
-                        // Mark that this position has been handled (use the non-offset position that is checked above)
-                        cacheEasyPlacePosition(pos, false);
-                        interact++;
-                        
-                        // Place multiple slabs/pickles at once, since this is one block
-                        // Disadvantage: you can exceed the maxInteract.
-                        if (stateSchematic.getBlock() instanceof SlabBlock
-                                && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
-                            stateClient = mc.world.getBlockState(npos);
+                            
+                            // If player hasn't the correct item in his hand yet
+                            // Depending on the maxInteracts, it tries to place the same block types in one function call
+                            if (!hasPicked) {
+                                if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) // When wrong item in hand
+                                    return ActionResult.FAIL;
+                                hasPicked = true;
+                                pickedBlock = stateSchematic.getBlock().getName();
+                            } else if (pickedBlock != null && !pickedBlock.equals(stateSchematic.getBlock().getName()))
+                                continue;
+                            
+                            Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
 
-                            if (stateClient.getBlock() instanceof SlabBlock
-                                    && stateClient.get(SlabBlock.TYPE) != SlabType.DOUBLE) {
-                                side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
-                                hitResult = new BlockHitResult(hitPos, side, npos, false);
-                                mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
-                                interact++;
-                            }
+                            // Go to next block if a wrong item is in the player's hand
+                            // It will place the same block per function call
+                            if (hand == null)
+                                continue;
+                            
+                            // An overrided minecraft function so we can use a fake rotation
+                            ActionResult actionResult = InteractionUtils.interactItem(mc, hand, result);
+                            
+                            // Placement failed
+                            if (actionResult != ActionResult.SUCCESS)
+                                continue;
+                            
+                            // Mark that this position has been handled (use the non-offset position that is checked above)
+                            cacheEasyPlacePosition(pos, false);
+                            interact++;
                         }
-                        else if (stateSchematic.getBlock() instanceof SeaPickleBlock
-                                && stateSchematic.get(SeaPickleBlock.PICKLES)>1) {
-                            stateClient = mc.world.getBlockState(npos);
-                            if (stateClient.getBlock() instanceof SeaPickleBlock
-                                    && stateClient.get(SeaPickleBlock.PICKLES) < stateSchematic.get(SeaPickleBlock.PICKLES)) {
-                                side = applyPlacementFacing(stateSchematic, sideOrig, stateClient);
-                                hitResult = new BlockHitResult(hitPos, side, npos, false);
-                                mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
-                                interact++;
-                            }
-                        }
+                        
                         if (interact >= maxInteract) {
-                        	lastPlaced = new Date().getTime();
+                            lastPlaced = new Date().getTime();
                             return ActionResult.SUCCESS;
                         }
                     }

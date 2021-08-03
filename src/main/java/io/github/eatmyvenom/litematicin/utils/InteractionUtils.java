@@ -2,6 +2,7 @@ package io.github.eatmyvenom.litematicin.utils;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
@@ -36,6 +37,7 @@ public class InteractionUtils {
             Vec3i vec = possibleDirections[i].getVector();
             BlockState state = mc.world.getBlockState(pos.add(vec));
             
+            // You can't place water on air or a waterloggen block
             if (state.isAir() || state.contains(Properties.WATERLOGGED)) continue;
             
             ViewResult result = isVisible(mc, pos, possibleDirections[i]);
@@ -88,20 +90,21 @@ public class InteractionUtils {
      * @return
      */
     private static ViewResult isVisible(MinecraftClient mc, BlockPos toSee, Direction blockFace) {
-        Rotation rotation = getNeededRotation(mc.player, toSee, blockFace);
+        final ClientPlayerEntity player = mc.player;
+        Rotation rotation = getNeededRotation(player, toSee, blockFace);
         
         float tickDelta = mc.getTickDelta();
         double maxDist = rotation.maxDist + 0.5f;
         
-        Vec3d vec3d = mc.player.getCameraPosVec(tickDelta);
+        Vec3d vec3d = player.getCameraPosVec(tickDelta);
         Vec3d vec3d2 = getRotationVector(rotation.pitch, rotation.yaw);
         Vec3d vec3d3 = vec3d.add(vec3d2.x * maxDist, vec3d2.y * maxDist, vec3d2.z * maxDist);
         HitResult result = mc.world.raycast(new RaycastContext(vec3d, vec3d3,
                 RaycastContext.ShapeType.OUTLINE, 
-                        RaycastContext.FluidHandling.ANY, mc.player));
+                        RaycastContext.FluidHandling.ANY, player));
         
         if (result.getType() == Type.BLOCK 
-                && !(result.getPos().squaredDistanceTo(mc.player.getX(), mc.player.getEyeY(), mc.player.getZ()) < rotation.maxDist * rotation.maxDist) // If there's a block between the player and the location
+                && !(result.getPos().squaredDistanceTo(player.getX(), player.getEyeY(), player.getZ()) < rotation.maxDist * rotation.maxDist) // If there's a block between the player and the location
                 && !mc.world.getBlockState(((BlockHitResult)result).getBlockPos()).contains(Properties.WATERLOGGED)) { // Don't place water on top of waterloggable blocks
             ViewResult viewResult = ViewResult.VISIBLE;
             viewResult.pitch = rotation.pitch;
@@ -163,12 +166,11 @@ public class InteractionUtils {
              mc.interactionManager.interactBlock(null, null, null, new BlockHitResult(null, null, 
                      new BlockPos(mc.world.getWorldBorder().getBoundEast()+3, 0, mc.world.getWorldBorder().getBoundSouth() + 3), false));
              // TODO Bug: when the player move's the block is placed at the wrong place
-             mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(),
+             mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getEyeY(),
                      mc.player.getZ(), result.yaw, result.pitch, mc.player.isOnGround()));
              mc.getNetworkHandler().sendPacket(new PlayerInteractItemC2SPacket(hand));
             ItemStack itemStack = mc.player.getStackInHand(hand);
             if (mc.player.getItemCooldownManager().isCoolingDown(itemStack.getItem())) {
-                System.out.println("Cooldown");
                return ActionResult.PASS;
             } else {
                TypedActionResult<ItemStack> typedActionResult = itemStack.use(mc.world, mc.player, hand);

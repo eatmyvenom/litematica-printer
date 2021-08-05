@@ -18,6 +18,7 @@ public class LitematicaMixinMod implements ModInitializer {
 	public static final ConfigBoolean EASY_PLACE_MODE_BREAK_BLOCKS 	= new ConfigBoolean("easyPlaceModeBreakBlocks", false, "Automatically breaks blocks.");
 	public static final ConfigDouble  EASY_PLACE_MODE_DELAY		   	= new ConfigDouble( "easyPlaceModeDelay", 0.2, 0.0, 1.0, "Delay between printing blocks.\nDo not set to 0 if you are playing on a server.");
     public static final ConfigBoolean EASY_PLACE_MODE_PAPER			= new ConfigBoolean("easyPlaceModePaper", false, "Enable this feature to bypass the built-in papers anti-cheat. This will make the range stricter, delay lower and only pick blocks from the hotbar.");
+    public static final ConfigBoolean EASY_PLACE_MODE_FLUIDS        = new ConfigBoolean("easyPlaceModeFluids", false, "Enable for placing fluid(water/lava) sources or waterlogged blocks. Be aware, this functions uses \"Fake rotations\", this can be seen as hacking!");
     
     public static final ImmutableList<IConfigBase> betterList = ImmutableList.<IConfigBase>builder()
 			.addAll(Configs.Generic.OPTIONS)
@@ -28,6 +29,7 @@ public class LitematicaMixinMod implements ModInitializer {
 			.add(EASY_PLACE_MODE_BREAK_BLOCKS)
 			.add(EASY_PLACE_MODE_DELAY)
 			.add(EASY_PLACE_MODE_PAPER)
+			.add(EASY_PLACE_MODE_FLUIDS)
 			.build();
     
 	@Override

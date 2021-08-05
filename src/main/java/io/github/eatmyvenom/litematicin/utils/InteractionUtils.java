@@ -1,17 +1,11 @@
 package io.github.eatmyvenom.litematicin.utils;
 
+import java.util.function.Predicate;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.hit.HitResult.Type;
 import net.minecraft.util.math.BlockPos;
@@ -19,18 +13,17 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
-import net.minecraft.world.GameMode;
 import net.minecraft.world.RaycastContext;
 
 public class InteractionUtils {
     
     /**
-     * Check if an item (bucket) can be used at the given {@code BlockPos}.
+     * Check if an item can be used at the given {@code BlockPos}.
      * @param pos
      * @param mc
      * @return
      */
-    public static ViewResult canSeeAndInteractWithBlock(BlockPos pos, MinecraftClient mc) {
+    public static ViewResult canSeeAndInteractWithBlock(BlockPos pos, MinecraftClient mc, Predicate<BlockState> statesToAccept) {
         Direction[] possibleDirections = Direction.values();
         
         for (int i = 0; i < possibleDirections.length; i++) {
@@ -38,7 +31,7 @@ public class InteractionUtils {
             BlockState state = mc.world.getBlockState(pos.add(vec));
             
             // You can't place water on air or a waterloggen block
-            if (state.isAir() || state.contains(Properties.WATERLOGGED)) continue;
+            if (!statesToAccept.test(state)) continue;
             
             ViewResult result = isVisible(mc, pos, possibleDirections[i]);
             
@@ -73,12 +66,13 @@ public class InteractionUtils {
 
         double pitch = Math.asin(diry);
         double yaw = Math.atan2(dirz, dirx);
-
+        
         //to degree
-        pitch = pitch * 180.0 / Math.PI;
-        yaw = yaw * 180.0 / Math.PI;
+        pitch = pitch * 180.0d / Math.PI;
+        yaw = yaw * 180.0d / Math.PI;
 
-        yaw += 90f;
+        yaw += 90d;
+        
         return new Rotation((float)yaw, (float)pitch, (float)len);
     }
     
@@ -104,8 +98,7 @@ public class InteractionUtils {
                         RaycastContext.FluidHandling.ANY, player));
         
         if (result.getType() == Type.BLOCK 
-                && !(result.getPos().squaredDistanceTo(player.getX(), player.getEyeY(), player.getZ()) < rotation.maxDist * rotation.maxDist) // If there's a block between the player and the location
-                && !mc.world.getBlockState(((BlockHitResult)result).getBlockPos()).contains(Properties.WATERLOGGED)) { // Don't place water on top of waterloggable blocks
+                && !(result.getPos().squaredDistanceTo(player.getX(), player.getEyeY(), player.getZ()) < rotation.maxDist * rotation.maxDist)) { // If there's a block between the player and the location
             ViewResult viewResult = ViewResult.VISIBLE;
             viewResult.pitch = rotation.pitch;
             viewResult.yaw = rotation.yaw;
@@ -116,7 +109,7 @@ public class InteractionUtils {
     }
     
     /**
-     * An overriden function from Minecraft. This original function was protected, so we couldn't use it.
+     * An overridden function from Minecraft. This original function was protected, so we couldn't use it.
      * @param pitch
      * @param yaw
      * @return
@@ -143,45 +136,6 @@ public class InteractionUtils {
             this.yaw = yaw;
             this.maxDist = maxDist;
         }
-    }
-    // TODO something wrong with the rotation
-
-    /**
-     * A slightly modified version of {@code ClientPlayerInteractionManager}.{@code interactItem(PlayerEntity player, World world, Hand hand)}
-     * that allows us to change the players rotation (yaw & pitch). 
-     * @param mc
-     * @param hand
-     * @param result This contains the rotation
-     * @return Whether or not the interact succeeded
-     */
-    public static ActionResult interactItem(MinecraftClient mc, Hand hand, ViewResult result) {
-        if (mc.interactionManager.getCurrentGameMode() == GameMode.SPECTATOR) {
-            System.out.println("Spectator");
-            return ActionResult.PASS;
-         } else {
-             /* mc.interactionManager.syncSelectedSlot() in inaccessible
-             *  To workaround this, we call interactBlock() and give a blockpos outside the worlborder,
-             *  this will imediately return but the syncSelectedSlot is called.
-             */
-             mc.interactionManager.interactBlock(null, null, null, new BlockHitResult(null, null, 
-                     new BlockPos(mc.world.getWorldBorder().getBoundEast()+3, 0, mc.world.getWorldBorder().getBoundSouth() + 3), false));
-             // TODO Bug: when the player move's the block is placed at the wrong place
-             mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getEyeY(),
-                     mc.player.getZ(), result.yaw, result.pitch, mc.player.isOnGround()));
-             mc.getNetworkHandler().sendPacket(new PlayerInteractItemC2SPacket(hand));
-            ItemStack itemStack = mc.player.getStackInHand(hand);
-            if (mc.player.getItemCooldownManager().isCoolingDown(itemStack.getItem())) {
-               return ActionResult.PASS;
-            } else {
-               TypedActionResult<ItemStack> typedActionResult = itemStack.use(mc.world, mc.player, hand);
-               ItemStack itemStack2 = (ItemStack)typedActionResult.getValue();
-               if (itemStack2 != itemStack) {
-                   mc.player.setStackInHand(hand, itemStack2);
-               }
-
-               return typedActionResult.getResult();
-            }
-         }
     }
 
 }

@@ -2,6 +2,7 @@ package io.github.eatmyvenom.litematicin.utils;
 
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_BREAK_BLOCKS;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_DELAY;
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_FLUIDS;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_MAX_BLOCKS;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_PAPER;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
@@ -59,6 +60,7 @@ import net.minecraft.block.WallMountedBlock;
 import net.minecraft.block.WallRedstoneTorchBlock;
 import net.minecraft.block.WallSignBlock;
 import net.minecraft.block.WallTorchBlock;
+import net.minecraft.block.Waterloggable;
 import net.minecraft.block.enums.BedPart;
 import net.minecraft.block.enums.BlockHalf;
 import net.minecraft.block.enums.DoubleBlockHalf;
@@ -69,6 +71,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.state.property.Properties;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -95,11 +99,7 @@ public class Printer {
      */
     @Environment(EnvType.CLIENT)
     public static boolean doSchematicWorldPickBlock(boolean closest, MinecraftClient mc, BlockState preference,
-            BlockPos pos) {
-
-        World world = SchematicWorldHandler.getSchematicWorld();
-
-        ItemStack stack = MaterialCache.getInstance().getRequiredBuildItemForState(preference, world, pos);
+            BlockPos pos, ItemStack stack) {
 
         if (stack.isEmpty() == false) {
             PlayerInventory inv = mc.player.getInventory();
@@ -119,6 +119,7 @@ public class Printer {
 
                 // NOTE: I dont know why we have to pick block in creative mode. You can simply
                 // just set the block
+                
                 mc.interactionManager.clickCreativeStack(stack, 36 + inv.selectedSlot);
 
                 return true;
@@ -126,10 +127,13 @@ public class Printer {
                
                 int slot = inv.getSlotWithStack(stack);
                 boolean shouldPick = inv.selectedSlot != slot;
-                boolean canPick = (slot != -1) && slot < 36 && (slot < maxSlotId && EASY_PLACE_MODE_PAPER.getBooleanValue());
+                boolean canPick = (slot != -1) && slot < 36 && (EASY_PLACE_MODE_PAPER.getBooleanValue() ? slot < maxSlotId : true);
 
                 if (shouldPick && canPick) {
                     InventoryUtils.setPickedItemToHand(stack, mc);
+                    return true;
+                    //return InteractionUtils.setPickedItemToHand(stack, mc);
+                } else if (!shouldPick) {
                     return true;
                 } else if (slot == -1 && Configs.Generic.PICK_BLOCK_SHULKERS.getBooleanValue()) {
                 	slot = InventoryUtils.findSlotWithBoxWithItem(mc.player.playerScreenHandler, stack, false);
@@ -139,11 +143,10 @@ public class Printer {
                         return true;
                 	}
                 }
-                return !shouldPick;
             }
         }
 
-        return true;
+        return false;
     }
 
     /**
@@ -320,13 +323,20 @@ public class Printer {
         for (int x = fromX; x <= toX; x++) {
             for (int y = fromY; y <= toY; y++) {
                 for (int z = fromZ; z <= toZ; z++) {
-
+                    BlockPos pos = new BlockPos(x, y, z);
+                    
+                    BlockState stateSchematic = world.getBlockState(pos);
+                    BlockState stateClient = mc.world.getBlockState(pos);
+                    
+                    if (stateSchematic == stateClient)
+                        continue;
+                    
                 	// Offset to player
                     double dx = mc.player.getX() - x - 0.5;
                     double dy = mc.player.getY() - y - 0.5;
                     double dz = mc.player.getZ() - z - 0.5;
                     
-                    // Another check if its within reach, this time its not checked in a square but in a circle, hard to do this in 3 dimensions
+                    // Another check if its within reach
                     if (dx * dx + dy * dy + dz * dz > maxReach * maxReach)
                     	continue;
 
@@ -341,14 +351,9 @@ public class Printer {
                         	continue;
                     }
                     
-                    BlockPos pos = new BlockPos(x, y, z);
-
                     if (range.isPositionWithinRange(pos) == false) // Check if block is rendered
                         continue;
-                  
-                    BlockState stateSchematic = world.getBlockState(pos);
-                    BlockState stateClient = mc.world.getBlockState(pos);
-
+                    
                     // Block breaking
                     if (breakBlocks && stateSchematic != null && !stateClient.isAir() && !(stateClient.getBlock() instanceof FluidBlock)) {
                         if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= maxReach * maxReach) {
@@ -498,7 +503,12 @@ public class Printer {
                     if (isPositionCached(pos, false)) continue;
                     
                     // If the player has the required item in his inventory or is in creative
-                    ItemStack stack = ((MaterialCache) MaterialCache.getInstance()).getRequiredBuildItemForState((BlockState)stateSchematic);
+                    ItemStack stack = MaterialCache.getInstance().getRequiredBuildItemForState(stateSchematic, world, pos);
+                    
+                    // The function above dus not take waterloggable blocks in account
+                    if (stateSchematic.getBlock() instanceof Waterloggable && stateSchematic.get(Properties.WATERLOGGED) && stateClient.getBlock() == stateSchematic.getBlock())
+                        stack = new ItemStack(Items.WATER_BUCKET);
+
                     if (stack.isEmpty() == false && (mc.player.getAbilities().creativeMode || mc.player.getInventory().getSlotWithStack(stack) != -1)) {
                         
                         Block sBlock = stateSchematic.getBlock();
@@ -508,6 +518,10 @@ public class Printer {
                         
                         // If the item is a block
                         if (stack.getItem() instanceof BlockItem) {
+                            // Block placing, when the correct block is already placed, but the state is incorrect, continue. (e.g. a powered rail that is not powered, we can't do anything about it, or the schematic is incomplete or the redstone isn't placed yet.
+                            if (stateClient.getBlock() == stateSchematic.getBlock())
+                                continue;
+                            
                             // When gravity block, check if there's a block underneath
                             if (sBlock instanceof FallingBlock) {
                                 BlockPos Offsetpos = new BlockPos(x, y-1, z);
@@ -553,7 +567,7 @@ public class Printer {
                             
                             // This should prevent the printer from placing torches and ... in water
                             if (!blockSchematic.canPlaceAt(stateSchematic, mc.world, pos)) continue;
-                            
+
                             if (blockSchematic instanceof WallMountedBlock || blockSchematic instanceof TorchBlock
                                     || blockSchematic instanceof LadderBlock || blockSchematic instanceof TrapdoorBlock
                                     || blockSchematic instanceof TripwireHookBlock || blockSchematic instanceof SignBlock
@@ -631,7 +645,7 @@ public class Printer {
                             // If player hasn't the correct item in his hand yet
                             // Depending on the maxInteracts, it tries to place the same block types in one function call
                             if (!hasPicked) {
-                                if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) // When wrong item in hand
+                                if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos, stack) == false) // When wrong item in hand
                                     return ActionResult.FAIL;
                                 hasPicked = true;
                                 pickedBlock = stateSchematic.getBlock().getName();
@@ -655,22 +669,18 @@ public class Printer {
                             // pos, side, hitPos
                             
                             ActionResult actionResult = mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
-
-                            // Test if the blockPlace failed, in this case we need to use it as an item
-                            if (!actionResult.isAccepted() && actionResult != ActionResult.FAIL) {
-                                ViewResult result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc);
-                                if (result == ViewResult.INVISIBLE)
-                                    continue;
-                                // An overrided minecraft function so we can use a fake rotation
-                                actionResult = InteractionUtils.interactItem(mc, hand, result);
-                            }
                             
-                            // Placement failed
-                            if (actionResult != ActionResult.SUCCESS)
+                            if (!actionResult.isAccepted()) 
                                 continue;
                             
-                            // Mark that this position has been handled (use the non-offset position that is checked above)
-                            cacheEasyPlacePosition(pos, false);
+                            if (actionResult.shouldSwingHand())
+                                   mc.player.swingHand(hand);
+                            
+                            // Ugly workaround, only cache when the block doesn't need to be waterlogged
+                            if (!(stateSchematic.getBlock() instanceof Waterloggable && stateSchematic.get(Properties.WATERLOGGED))) {
+                                // Mark that this position has been handled (use the non-offset position that is checked above)
+                                cacheEasyPlacePosition(pos, false);
+                            }
                             interact++;
                             
                             // Place multiple slabs/pickles at once, since this is one block
@@ -699,14 +709,23 @@ public class Printer {
                                 }
                             }
                             
-                        } else { // If its an item
+                        } else if (EASY_PLACE_MODE_FLUIDS.getBooleanValue()) { // If its an item
                             // TODO remove some of the duplicate code
                             // TODO support more items
                             ViewResult result = ViewResult.INVISIBLE;
                             
                             // Currently only water/lava blocks placement is supported
                             if (stateSchematic.getBlock() instanceof FluidBlock) {
-                                result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc);
+                                
+                                // Water can only be placed if the neighbor is a solid block -> not air and not a waterloggable block
+                                result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc,
+                                        (state) -> !state.isAir() && !state.contains(Properties.WATERLOGGED));
+                                
+                            }else if (stateSchematic.getBlock() instanceof Waterloggable) {
+                                
+                                // Waterloggable block only visible when neighbor is air.
+                                result = InteractionUtils.canSeeAndInteractWithBlock(pos, mc,
+                                        (state) -> state.isAir());
                             }
                             
                             if (result == ViewResult.INVISIBLE)
@@ -715,7 +734,7 @@ public class Printer {
                             // If player hasn't the correct item in his hand yet
                             // Depending on the maxInteracts, it tries to place the same block types in one function call
                             if (!hasPicked) {
-                                if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos) == false) // When wrong item in hand
+                                if (doSchematicWorldPickBlock(true, mc, stateSchematic, pos, stack) == false) // When wrong item in hand
                                     return ActionResult.FAIL;
                                 hasPicked = true;
                                 pickedBlock = stateSchematic.getBlock().getName();
@@ -723,19 +742,31 @@ public class Printer {
                                 continue;
                             
                             Hand hand = EntityUtils.getUsedHandForItem(mc.player, stack);
-
+                            
                             // Go to next block if a wrong item is in the player's hand
                             // It will place the same block per function call
                             if (hand == null)
                                 continue;
                             
-                            // An overrided minecraft function so we can use a fake rotation
-                            ActionResult actionResult = InteractionUtils.interactItem(mc, hand, result);
+                            // Set player's rotation to fake rotation
+                            float previousYaw = mc.player.getYaw();
+                            float previousPitch = mc.player.getPitch();
                             
-                            // Placement failed
-                            if (actionResult != ActionResult.SUCCESS)
-                                continue;
+                            mc.player.setYaw(result.yaw);
+                            mc.player.setPitch(result.pitch);
+
+                            ActionResult actionResult = mc.interactionManager.interactItem(mc.player, mc.world, hand);
                             
+                            // Set rotation back to original
+                            mc.player.setYaw(previousYaw);
+                            mc.player.setPitch(previousPitch);
+                            
+                            if (!actionResult.isAccepted())
+                                  continue;
+
+                            if (actionResult.shouldSwingHand())
+                               mc.player.swingHand(hand);
+                           
                             // Mark that this position has been handled (use the non-offset position that is checked above)
                             cacheEasyPlacePosition(pos, false);
                             interact++;
@@ -803,6 +834,7 @@ public class Printer {
     private static boolean printerCheckCancel(BlockState stateSchematic, BlockState stateClient,
             PlayerEntity player) {
         Block blockSchematic = stateSchematic.getBlock();
+        // TODO fully implement pickels, here it just check if it can be clicked
         if (blockSchematic instanceof SeaPickleBlock && stateSchematic.get(SeaPickleBlock.PICKLES) >1) {
             Block blockClient = stateClient.getBlock();
 
@@ -810,22 +842,24 @@ public class Printer {
                 return blockSchematic != blockClient;
             }
         }
-        if (blockSchematic instanceof SlabBlock && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
+        else if (blockSchematic instanceof SlabBlock && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
             Block blockClient = stateClient.getBlock();
 
             if (blockClient instanceof SlabBlock && stateClient.get(SlabBlock.TYPE) != SlabType.DOUBLE) {
                 return blockSchematic != blockClient;
             }
         }
-
+        
         Block blockClient = stateClient.getBlock();
         if (blockClient instanceof SnowBlock && stateClient.get(SnowBlock.LAYERS) <3) {
                 return false;
         }
         // If its air, the block doesn't need to be clicked again
         // This is a lot simpler than below. But slightly lacks functionality.
-        if (stateClient.isAir() || stateClient.getBlock() instanceof FluidBlock) 
+        if (stateClient.isAir() || stateClient.getBlock() instanceof FluidBlock
+                || (stateSchematic.contains(Properties.WATERLOGGED) && stateClient.contains(Properties.WATERLOGGED)))
             return false;
+        
         /*
          * if (trace.getType() != HitResult.Type.BLOCK) { return false; }
          */

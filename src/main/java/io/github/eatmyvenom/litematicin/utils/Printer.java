@@ -35,6 +35,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.ComparatorBlock;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.EndRodBlock;
@@ -167,7 +168,7 @@ public class Printer {
     public static int worldTopY = 256;
     
     // Paper anti-cheat values
-    private static final int maxReachCreative = 7;
+    private static final int maxReachCreative = 6;
     private static final int maxReachSurvival = 6;
     private static final int maxSlotId = 9;
     private static final int maxDistance = 8;
@@ -176,6 +177,9 @@ public class Printer {
     private static final double minimumDelay = 0.1D;
     private static final int paperMaxInteractsPerFunctionCall = 1; // Otherwise to much packets at once
 
+    // Water replacement
+    public static BlockState waterReplacementBlock = Blocks.AIR.getDefaultState();
+    
     /**
      * Trying to place or break a block.
      * @param mc {@code MinecraftClient} for accessing the playerclient and managers...
@@ -355,9 +359,16 @@ public class Printer {
                         continue;
                     
                     // Block breaking
-                    if (breakBlocks && stateSchematic != null && !stateClient.isAir() && !(stateClient.getBlock() instanceof FluidBlock)) {
+                    if (breakBlocks && stateSchematic != null && !stateClient.isAir()) {
                         if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= maxReach * maxReach) {
-                        	if (mc.player.getAbilities().creativeMode) {
+                            if (stateClient.getBlock() instanceof FluidBlock) {
+                                if (stateClient.get(FluidBlock.LEVEL) == 0) {
+                                    // Some manipulation with blockStates to reach the placement code
+                                    stateClient = Blocks.AIR.getDefaultState();
+                                    // When air, should automatically continue;
+                                    stateSchematic = waterReplacementBlock;
+                                }
+                            } else if (mc.player.getAbilities().creativeMode) {
                         		mc.interactionManager.attackBlock(pos, Direction.DOWN);
                                 interact++;
 

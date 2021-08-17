@@ -8,7 +8,7 @@ import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MOD
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
-
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.ACCURATE_BLOCK_PLACEMENT;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,11 +37,13 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ComparatorBlock;
+import net.minecraft.block.enums.ComparatorMode;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.EndRodBlock;
 import net.minecraft.block.FallingBlock;
 import net.minecraft.block.FenceGateBlock;
 import net.minecraft.block.FluidBlock;
+import net.minecraft.block.GlazedTerracottaBlock;
 import net.minecraft.block.HopperBlock;
 import net.minecraft.block.LadderBlock;
 import net.minecraft.block.LeverBlock;
@@ -196,7 +198,7 @@ public class Printer {
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
         int maxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
-        
+        boolean CanUseProtocol = ACCURATE_BLOCK_PLACEMENT.getBooleanValue();
         // Paper anti-cheat implementation
         if (EASY_PLACE_MODE_PAPER.getBooleanValue()) {
             if (mc.player.getAbilities().creativeMode) {
@@ -548,7 +550,7 @@ public class Printer {
                                     .getFirstPropertyFacingValue(stateSchematic);
                             if (facing != null) {
                                 FacingData facedata = facingDataStorage.getFacingData(stateSchematic);
-                                if (!canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
+                                if (!CanUseProtocol && !canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
                                     continue;
     
                                 if ((stateSchematic.getBlock() instanceof DoorBlock
@@ -672,7 +674,7 @@ public class Printer {
                             
                             Vec3d hitPos = new Vec3d(offX, offY, offZ);
                             // Carpet Accurate Placement protocol support, plus BlockSlab support
-                            hitPos = applyHitVec(npos, stateSchematic, hitPos, side);
+                            if(CanUseProtocol &&IsBlockSupportedCarpet(stateSchematic.getBlock())) {hitPos = WorldUtils.applyCarpetProtocolHitVec(npos,stateSchematic,hitPos);} else {hitPos = applyHitVec(npos, stateSchematic, hitPos, side);}
                             
                             BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
                             
@@ -1066,7 +1068,64 @@ public class Printer {
             item.hasClicked = true;
         positionCache.add(item);
     }
+	public static Vec3d applyCarpetProtocolHitVec(BlockPos pos, BlockState state, Vec3d hitVecIn)
+	    {
+  	      double x = hitVecIn.x;
+ 	       double y = hitVecIn.y;
+   	     double z = hitVecIn.z;
+   	     Block block = state.getBlock();
+   	     Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+   	     final int propertyIncrement = 32;
+   	     double relX = hitVecIn.x - pos.getX();
 
+    	    if (facing != null)
+   	     {
+    	        x = pos.getX() + relX + 2 + (facing.getId() * 2);
+   	     }
+	if (block instanceof RepeaterBlock)
+      	  {
+  	          x += ((state.get(RepeaterBlock.DELAY))) * propertyIncrement;
+   	     }
+  	      else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
+ 	       {
+  	          x += propertyIncrement;
+ 	       }
+  	      else if (block instanceof ComparatorBlock && state.get(ComparatorBlock.MODE) == ComparatorMode.SUBTRACT)
+    	    {
+  	          x += propertyIncrement;
+  	      }
+  	      else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
+  	      {
+  	          x += propertyIncrement;
+  	      }
+   	     else if (block instanceof StairsBlock && state.get(StairsBlock.HALF) == BlockHalf.TOP)
+  	      {
+  	          x += propertyIncrement;
+  	      }
+  	      else if (block instanceof SlabBlock && state.get(SlabBlock.TYPE) != SlabType.DOUBLE)
+  	      {
+            //x += 10; // Doesn't actually exist (yet?)
+	
+            // Do it via vanilla
+  	          if (state.get(SlabBlock.TYPE) == SlabType.TOP)
+  	          {
+     	           y = pos.getY() + 0.9;
+  	          }
+    	        else
+    	        {
+                y = pos.getY();
+       	     }
+     	   }
+
+    	    return new Vec3d(x, y, z);
+  	  }
+    private static Boolean IsBlockSupportedCarpet(Block SchematicBlock){
+	if (SchematicBlock instanceof GlazedTerracottaBlock || SchematicBlock instanceof ObserverBlock || SchematicBlock instanceof RepeaterBlock || SchematicBlock instanceof TrapdoorBlock ||
+		SchematicBlock instanceof ComparatorBlock || SchematicBlock instanceof DispenserBlock || SchematicBlock instanceof PistonBlock || SchematicBlock instanceof StairsBlock)
+		{return true;}
+	return false;
+
+	}
     public static class PositionCache {
         private final BlockPos pos;
         private final long time;

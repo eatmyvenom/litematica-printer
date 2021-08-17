@@ -26,7 +26,7 @@ public class LitematicaMixinMod implements ModInitializer {
     public static final ConfigBoolean EASY_PLACE_MODE_PAPER			= new ConfigBoolean("easyPlaceModePaper", false, "Enable this feature to bypass the built-in papers anti-cheat. This will make the range stricter, delay lower and only pick blocks from the hotbar.");
     public static final ConfigBoolean EASY_PLACE_MODE_FLUIDS        = new ConfigBoolean("easyPlaceModeFluids", false, "Enable for placing fluid(water/lava) sources or waterlogged blocks. Be aware, this functions uses \"Fake rotations\", this can be seen as hacking!");
     public static final ConfigString  EASY_PLACE_MODE_REPLACE_FLUIDS= new ConfigString("easyPlaceModeReplaceFluids", "none", "To enable, type the name of the block which should be placed to remove excessive fluid sources.");
-    
+    public static final ConfigBoolean ACCURATE_BLOCK_PLACEMENT = new ConfigBoolean("AccurateBlockPlacement",false,"if carpet extra/quickcarpet enabled it, turn on");
     public static final ImmutableList<IConfigBase> betterList = ImmutableList.<IConfigBase>builder()
 			.addAll(Configs.Generic.OPTIONS)
 			.add(EASY_PLACE_MODE_RANGE_X)
@@ -38,6 +38,7 @@ public class LitematicaMixinMod implements ModInitializer {
 			.add(EASY_PLACE_MODE_PAPER)
 			.add(EASY_PLACE_MODE_FLUIDS)
 			.add(EASY_PLACE_MODE_REPLACE_FLUIDS)
+	    		.add(ACCURATE_BLOCK_PLACEMENT)
 			.build();
     
 	@Override

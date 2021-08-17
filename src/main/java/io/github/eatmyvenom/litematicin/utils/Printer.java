@@ -1,5 +1,6 @@
 package io.github.eatmyvenom.litematicin.utils;
 
+import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.ACCURATE_BLOCK_PLACEMENT;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_BREAK_BLOCKS;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_DELAY;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_FLUIDS;
@@ -8,7 +9,7 @@ import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MOD
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_X;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Y;
 import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.EASY_PLACE_MODE_RANGE_Z;
-import static io.github.eatmyvenom.litematicin.LitematicaMixinMod.ACCURATE_BLOCK_PLACEMENT;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,7 +38,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ComparatorBlock;
-import net.minecraft.block.enums.ComparatorMode;
+import net.minecraft.block.DispenserBlock;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.EndRodBlock;
 import net.minecraft.block.FallingBlock;
@@ -49,7 +50,9 @@ import net.minecraft.block.LadderBlock;
 import net.minecraft.block.LeverBlock;
 import net.minecraft.block.Material;
 import net.minecraft.block.NoteBlock;
+import net.minecraft.block.ObserverBlock;
 import net.minecraft.block.PillarBlock;
+import net.minecraft.block.PistonBlock;
 import net.minecraft.block.RepeaterBlock;
 import net.minecraft.block.SeaPickleBlock;
 import net.minecraft.block.SignBlock;
@@ -66,6 +69,7 @@ import net.minecraft.block.WallTorchBlock;
 import net.minecraft.block.Waterloggable;
 import net.minecraft.block.enums.BedPart;
 import net.minecraft.block.enums.BlockHalf;
+import net.minecraft.block.enums.ComparatorMode;
 import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.block.enums.SlabType;
 import net.minecraft.block.enums.WallMountLocation;
@@ -674,7 +678,7 @@ public class Printer {
                             
                             Vec3d hitPos = new Vec3d(offX, offY, offZ);
                             // Carpet Accurate Placement protocol support, plus BlockSlab support
-                            if(CanUseProtocol &&IsBlockSupportedCarpet(stateSchematic.getBlock())) {hitPos = WorldUtils.applyCarpetProtocolHitVec(npos,stateSchematic,hitPos);} else {hitPos = applyHitVec(npos, stateSchematic, hitPos, side);}
+                            if(CanUseProtocol &&IsBlockSupportedCarpet(stateSchematic.getBlock())) {hitPos = applyCarpetProtocolHitVec(npos,stateSchematic,hitPos);} else {hitPos = applyHitVec(npos, stateSchematic, hitPos, side);}
                             
                             BlockHitResult hitResult = new BlockHitResult(hitPos, side, npos, false);
                             
@@ -1068,64 +1072,63 @@ public class Printer {
             item.hasClicked = true;
         positionCache.add(item);
     }
-	public static Vec3d applyCarpetProtocolHitVec(BlockPos pos, BlockState state, Vec3d hitVecIn)
-	    {
-  	      double x = hitVecIn.x;
- 	       double y = hitVecIn.y;
-   	     double z = hitVecIn.z;
-   	     Block block = state.getBlock();
-   	     Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
-   	     final int propertyIncrement = 32;
-   	     double relX = hitVecIn.x - pos.getX();
+    
+	public static Vec3d applyCarpetProtocolHitVec(BlockPos pos, BlockState state, Vec3d hitVecIn) {
+	    double x = hitVecIn.x;
+	    double y = hitVecIn.y;
+	    double z = hitVecIn.z;
+	    Block block = state.getBlock();
+	    Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+	    final int propertyIncrement = 32;
+	    double relX = hitVecIn.x - pos.getX();
 
-    	    if (facing != null)
-   	     {
-    	        x = pos.getX() + relX + 2 + (facing.getId() * 2);
-   	     }
-	if (block instanceof RepeaterBlock)
-      	  {
-  	          x += ((state.get(RepeaterBlock.DELAY))) * propertyIncrement;
-   	     }
-  	      else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
- 	       {
-  	          x += propertyIncrement;
- 	       }
-  	      else if (block instanceof ComparatorBlock && state.get(ComparatorBlock.MODE) == ComparatorMode.SUBTRACT)
-    	    {
-  	          x += propertyIncrement;
-  	      }
-  	      else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
-  	      {
-  	          x += propertyIncrement;
-  	      }
-   	     else if (block instanceof StairsBlock && state.get(StairsBlock.HALF) == BlockHalf.TOP)
-  	      {
-  	          x += propertyIncrement;
-  	      }
-  	      else if (block instanceof SlabBlock && state.get(SlabBlock.TYPE) != SlabType.DOUBLE)
-  	      {
-            //x += 10; // Doesn't actually exist (yet?)
-	
-            // Do it via vanilla
-  	          if (state.get(SlabBlock.TYPE) == SlabType.TOP)
-  	          {
-     	           y = pos.getY() + 0.9;
-  	          }
-    	        else
-    	        {
-                y = pos.getY();
-       	     }
-     	   }
+    	if (facing != null) {
+    	    x = pos.getX() + relX + 2 + (facing.getId() * 2);
+    	}
+    	if (block instanceof RepeaterBlock) {
+    	    x += ((state.get(RepeaterBlock.DELAY))) * propertyIncrement;
+    	}
+    	else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
+    	{
+    	    x += propertyIncrement;
+    	}
+    	else if (block instanceof ComparatorBlock && state.get(ComparatorBlock.MODE) == ComparatorMode.SUBTRACT)
+    	{
+    	    x += propertyIncrement;
+    	}
+    	else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
+    	{
+    	    x += propertyIncrement;
+    	}
+    	else if (block instanceof StairsBlock && state.get(StairsBlock.HALF) == BlockHalf.TOP)
+    	{
+    	    x += propertyIncrement;
+    	}
+    	else if (block instanceof SlabBlock && state.get(SlabBlock.TYPE) != SlabType.DOUBLE)
+    	{
+    	    //x += 10; // Doesn't actually exist (yet?)
 
-    	    return new Vec3d(x, y, z);
-  	  }
-    private static Boolean IsBlockSupportedCarpet(Block SchematicBlock){
-	if (SchematicBlock instanceof GlazedTerracottaBlock || SchematicBlock instanceof ObserverBlock || SchematicBlock instanceof RepeaterBlock || SchematicBlock instanceof TrapdoorBlock ||
-		SchematicBlock instanceof ComparatorBlock || SchematicBlock instanceof DispenserBlock || SchematicBlock instanceof PistonBlock || SchematicBlock instanceof StairsBlock)
-		{return true;}
-	return false;
+    	    // Do it via vanilla
+    	    if (state.get(SlabBlock.TYPE) == SlabType.TOP) {
+    	        y = pos.getY() + 0.9;
+    	    } else {
+    	        y = pos.getY();
+    	    }
+    	}
 
+    	return new Vec3d(x, y, z);
 	}
+	
+	private static Boolean IsBlockSupportedCarpet(Block SchematicBlock){
+    	if (SchematicBlock instanceof GlazedTerracottaBlock || SchematicBlock instanceof ObserverBlock 
+    	        || SchematicBlock instanceof RepeaterBlock || SchematicBlock instanceof TrapdoorBlock 
+    	        || SchematicBlock instanceof ComparatorBlock || SchematicBlock instanceof DispenserBlock 
+    	        || SchematicBlock instanceof PistonBlock || SchematicBlock instanceof StairsBlock) {
+    	    return true;
+    	}
+    	return false;
+	}
+    
     public static class PositionCache {
         private final BlockPos pos;
         private final long time;

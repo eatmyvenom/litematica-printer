@@ -15,6 +15,8 @@ To set this up just add the latest litematica version to your mods folder as wel
 `easyPlaceModePaper`:&emsp;			"Enable this feature to bypass the built-in papers anti-cheat. This will make the range stricter, delay lower and only pick blocks from the hotbar."<br/>
 `easyPlaceModeFluids`:&emsp;		"Enable this feature for placing fluid(water/lava) sources or waterlogged blocks. Be aware, this functions uses \"Fake rotations\", this can be seen as hacking!"<br/>
 `easyPlaceModeReplaceFluids`:&emsp;	"To enable, type the name of the block which should be placed to remove excessive fluid sources."<br/>
+`easyPlaceModeAccurateBlockPlacement`:&emsp;	"Places blocks immediately in the correct state (e.g. repeaters with correct delay). Requirs the accurateBlockPlacement feature from the carpet extra/quickcarpet mod!"<br/>
+
 
 ### Handy litematica settings:
 

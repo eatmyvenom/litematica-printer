@@ -554,7 +554,7 @@ public class Printer {
                                     .getFirstPropertyFacingValue(stateSchematic);
                             if (facing != null) {
                                 FacingData facedata = facingDataStorage.getFacingData(stateSchematic);
-                                if (!CanUseProtocol && !canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
+                                if (!(CanUseProtocol && IsBlockSupportedCarpet(stateSchematic.getBlock())) && !canPlaceFace(facedata, stateSchematic, mc.player, primaryFacing, horizontalFacing, facing))
                                     continue;
     
                                 if ((stateSchematic.getBlock() instanceof DoorBlock
@@ -1073,51 +1073,60 @@ public class Printer {
         positionCache.add(item);
     }
     
-	public static Vec3d applyCarpetProtocolHitVec(BlockPos pos, BlockState state, Vec3d hitVecIn) {
-	    double x = hitVecIn.x;
-	    double y = hitVecIn.y;
-	    double z = hitVecIn.z;
-	    Block block = state.getBlock();
-	    Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
-	    final int propertyIncrement = 32;
-	    double relX = hitVecIn.x - pos.getX();
+	public static Vec3d applyCarpetProtocolHitVec(BlockPos pos, BlockState state, Vec3d hitVecIn)
+	    {
+		double dx = pos.getX();
+		double dy = pos.getY();
+		double dz = pos.getZ();
+  	      double x = hitVecIn.x;
+ 	       double y = hitVecIn.y;
+   	     double z = hitVecIn.z;
+   	     Block block = state.getBlock();
+   	     Direction facing = fi.dy.masa.malilib.util.BlockUtils.getFirstPropertyFacingValue(state);
+   	     final int propertyIncrement = 32;
+   	     double relX = hitVecIn.x - pos.getX();
 
-    	if (facing != null) {
-    	    x = pos.getX() + relX + 2 + (facing.getId() * 2);
-    	}
-    	if (block instanceof RepeaterBlock) {
-    	    x += ((state.get(RepeaterBlock.DELAY))) * propertyIncrement;
-    	}
-    	else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
-    	{
-    	    x += propertyIncrement;
-    	}
-    	else if (block instanceof ComparatorBlock && state.get(ComparatorBlock.MODE) == ComparatorMode.SUBTRACT)
-    	{
-    	    x += propertyIncrement;
-    	}
-    	else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
-    	{
-    	    x += propertyIncrement;
-    	}
-    	else if (block instanceof StairsBlock && state.get(StairsBlock.HALF) == BlockHalf.TOP)
-    	{
-    	    x += propertyIncrement;
-    	}
-    	else if (block instanceof SlabBlock && state.get(SlabBlock.TYPE) != SlabType.DOUBLE)
-    	{
-    	    //x += 10; // Doesn't actually exist (yet?)
+    	    if (facing != null)
+   	     {
+    	        x = pos.getX() + relX + 2 + (facing.getId() * 2);
+   	     }
+	if (block instanceof RepeaterBlock)
+      	  {
+  	          x += ((state.get(RepeaterBlock.DELAY))) * propertyIncrement;
+   	     }
+  	      else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
+ 	       {
+  	          x += propertyIncrement;
+ 	       }
+  	      else if (block instanceof ComparatorBlock && state.get(ComparatorBlock.MODE) == ComparatorMode.SUBTRACT)
+    	    {
+  	          x += propertyIncrement;
+  	      }
+  	      else if (block instanceof TrapdoorBlock && state.get(TrapdoorBlock.HALF) == BlockHalf.TOP)
+  	      {
+  	          x += propertyIncrement;
+  	      }
+   	     else if (block instanceof StairsBlock && state.get(StairsBlock.HALF) == BlockHalf.TOP)
+  	      {
+  	          x += propertyIncrement;
+  	      }
+  	      else if (block instanceof SlabBlock && state.get(SlabBlock.TYPE) != SlabType.DOUBLE)
+  	      {
+            //x += 10; // Doesn't actually exist (yet?)
+	
+            // Do it via vanilla
+  	          if (state.get(SlabBlock.TYPE) == SlabType.TOP)
+  	          {
+     	           y = pos.getY() + 0.9;
+  	          }
+    	        else
+    	        {
+                y = pos.getY();
+       	     }
+     	   }
 
-    	    // Do it via vanilla
-    	    if (state.get(SlabBlock.TYPE) == SlabType.TOP) {
-    	        y = pos.getY() + 0.9;
-    	    } else {
-    	        y = pos.getY();
-    	    }
-    	}
-
-    	return new Vec3d(x, y, z);
-	}
+    	    return new Vec3d(dx+x,dy+ y,dz+ z);
+  	  }
 	
 	private static Boolean IsBlockSupportedCarpet(Block SchematicBlock){
     	if (SchematicBlock instanceof GlazedTerracottaBlock || SchematicBlock instanceof ObserverBlock 

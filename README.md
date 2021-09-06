@@ -4,6 +4,14 @@
 
 To set this up just add the latest litematica version to your mods folder as well as this, it will replace easy place with printer. This does not use accurate placement protocol and therefore means that in order to place blocks in some rotations, you need to rotate your player. If I stop lazy, I will add one that does use accurate placement.
 
+## Install guide
+
+Install fabric (well, use MultiMC), litematica, malilib, and put this into mods folder. then you can just use easyplace. 
+
+## Caution
+
+(WON'T FIX) paper, spigot or other types can have their own anti cheat to prevent 'not-looking' placement, which means you can't do anything with this. There's some option to nerf printing action at https://github.com/jensvh/litematica-printer/releases/tag/v1.0.4, but still we can't assure if it would work or not. Use this if you are sure about it.
+
 ## Settings
 
 ### Printer settings:

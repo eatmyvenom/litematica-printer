@@ -6,11 +6,11 @@ To set this up just add the latest litematica version to your mods folder as wel
 
 ## Install guide
 
-Install fabric (well, use MultiMC), litematica, malilib, and put this into mods folder. then you can just use easyplace. 
+Install fabric, litematica, malilib, as well as this mod and put this in the mods folder.
 
 ## Caution
 
-(WON'T FIX) paper, spigot or other types can have their own anti cheat to prevent 'not-looking' placement, which means you can't do anything with this. There's some option to nerf printing action at https://github.com/jensvh/litematica-printer/releases/tag/v1.0.4, but still we can't assure if it would work or not. Use this if you are sure about it.
+Some servers can have an anti cheat plugin installed, this prevents 'not-looking' placement, which means you can only place the block you're looking at. Test or ask if their is one, to prevent being kicked/banned from the server.
 
 ## Settings
 

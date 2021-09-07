@@ -77,8 +77,6 @@ public class Printer {
 	
     private static final List<PositionCache> positionCache = new ArrayList<>();
 
-    private static FacingDataStorage facingDataStorage = new FacingDataStorage();
-    
     /**
      * For now this function tries to equip the correct item for placing the block.
      * @param closest Not used.
@@ -185,7 +183,7 @@ public class Printer {
         int rangeZ = EASY_PLACE_MODE_RANGE_Z.getIntegerValue();
         int maxReach = Math.max(Math.max(rangeX,rangeY),rangeZ);
         boolean breakBlocks = EASY_PLACE_MODE_BREAK_BLOCKS.getBooleanValue();
-        boolean CanUseProtocol = ACCURATE_BLOCK_PLACEMENT.getBooleanValue();
+        boolean accuratePlacementProtocol = ACCURATE_BLOCK_PLACEMENT.getBooleanValue();
         // Paper anti-cheat implementation
         if (EASY_PLACE_MODE_PAPER.getBooleanValue()) {
             if (mc.player.getAbilities().creativeMode) {
@@ -526,7 +524,7 @@ public class Printer {
                             // Can be null, block items do not use this, only necessary when using carpetProtocol
                             Vec3d hitPos = new Vec3d(0.5d, 0.5d, 0.5d);
                             // Carpet Accurate Placement protocol support, plus BlockSlab support
-                            if(CanUseProtocol && IsBlockSupportedCarpet(stateSchematic.getBlock())) {
+                            if(accuratePlacementProtocol && IsBlockSupportedCarpet(stateSchematic.getBlock())) {
                                 hitPos = applyCarpetProtocolHitVec(pos,stateSchematic,hitPos);
                             }
                             

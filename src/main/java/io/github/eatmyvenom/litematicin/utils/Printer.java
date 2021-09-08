@@ -45,7 +45,6 @@ import net.minecraft.block.GlazedTerracottaBlock;
 import net.minecraft.block.ObserverBlock;
 import net.minecraft.block.PistonBlock;
 import net.minecraft.block.RepeaterBlock;
-import net.minecraft.block.SeaPickleBlock;
 import net.minecraft.block.SignBlock;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
@@ -347,7 +346,9 @@ public class Printer {
                     
                     // Block breaking
                     if (breakBlocks && stateSchematic != null && !stateClient.isAir()) {
-                        if (!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName()) && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= maxReach * maxReach) {
+                        if ((!stateClient.getBlock().getName().equals(stateSchematic.getBlock().getName())
+                                || InteractionUtils.hasCorrectRotation(stateClient, stateSchematic))
+                                && dx * dx + Math.pow(dy + 1.5,2) + dz * dz <= maxReach * maxReach) {
                             if (stateClient.getBlock() instanceof FluidBlock) {
                                 if (stateClient.get(FluidBlock.LEVEL) == 0) {
                                     // Some manipulation with blockStates to reach the placement code
@@ -547,7 +548,7 @@ public class Printer {
                             
                             // Place multiple slabs/pickles at once, since this is one block
                             // Disadvantage: you can exceed the maxInteract.
-                            if (stateSchematic.getBlock() instanceof SlabBlock
+                            /*if (stateSchematic.getBlock() instanceof SlabBlock
                                     && stateSchematic.get(SlabBlock.TYPE) == SlabType.DOUBLE) {
                                 stateClient = mc.world.getBlockState(pos);
 
@@ -567,7 +568,7 @@ public class Printer {
                                     mc.interactionManager.interactBlock(mc.player, mc.world, hand, hitResult);
                                     interact++;
                                 }
-                            }
+                            }*/
                             
                         } else if (EASY_PLACE_MODE_FLUIDS.getBooleanValue()) { // If its an item
                             // TODO remove some of the duplicate code

@@ -3,6 +3,7 @@ package io.github.eatmyvenom.litematicin.utils;
 import java.util.function.Predicate;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.enums.SlabType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -148,32 +149,40 @@ public class InteractionUtils {
             Hand hand, BlockPos pos, MinecraftClient mc) {
 
         // If is blockItem, should normally be true, since this function only gets called when placing a block
-        directionLoop : for (Direction side : Direction.values()) {
+        for (Direction side : Direction.values()) {
             BlockHitResult hitResult = new BlockHitResult(new Vec3d(0, 0, 0), side, pos, false);
             ItemPlacementContext ctx = new ItemPlacementContext(new ItemUsageContext(mc.player, hand, hitResult));
             if (ctx.canPlace()) {
                 BlockState stateAfterPlacement = stateSchematic.getBlock().getPlacementState(ctx);
-                // If both are oriented the same
-                Property<?>[] propertiesToCheck = new Property<?>[] {
-                    Properties.FACING,
-                    Properties.HORIZONTAL_FACING,
-                    Properties.BLOCK_HALF,
-                    Properties.SLAB_TYPE,
-                    Properties.WALL_MOUNT_LOCATION,
-                    Properties.AXIS
-                };
-
-                for (Property<?> property : propertiesToCheck) {
-                    if (stateAfterPlacement.contains(property) && stateSchematic.contains(property)) {
-                        if (stateAfterPlacement.get(property) != stateSchematic.get(property)) {
-                            continue directionLoop;
-                        }
-                    }
-                }
                 
-                return hitResult;
+                if (hasCorrectRotation(stateAfterPlacement, stateSchematic))
+                    return hitResult;
+                else if ((stateSchematic.contains(Properties.SLAB_TYPE) && stateSchematic.get(Properties.SLAB_TYPE) == SlabType.DOUBLE)
+                        || stateSchematic.contains(Properties.CANDLES))
+                    return hitResult;
             }
         }
         return null;
+    }
+    
+    public static boolean hasCorrectRotation(BlockState toCheck, BlockState correctState) {
+        // If both are oriented the same
+        Property<?>[] propertiesToCheck = new Property<?>[] {
+            Properties.FACING,
+            Properties.HORIZONTAL_FACING,
+            Properties.BLOCK_HALF,
+            Properties.SLAB_TYPE,
+            Properties.WALL_MOUNT_LOCATION,
+            Properties.AXIS
+        };
+
+        for (Property<?> property : propertiesToCheck) {
+            if (toCheck.contains(property) && correctState.contains(property)) {
+                if (toCheck.get(property) != correctState.get(property)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

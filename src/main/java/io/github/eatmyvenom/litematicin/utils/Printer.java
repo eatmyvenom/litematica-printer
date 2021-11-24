@@ -200,7 +200,7 @@ public class Printer {
         
     	
     	// Get the block the player is currently looking at
-        RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, maxReach, true);
+        RayTraceWrapper traceWrapper = RayTraceUtils.getGenericTrace(mc.world, mc.player, maxReach);
         if (traceWrapper == null) {
             return ActionResult.FAIL;
         }
